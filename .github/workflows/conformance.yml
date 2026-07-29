@@ -73,6 +73,7 @@ jobs:
         working-directory: ${{ matrix.backend }}
         run: |
           npm ci
+          npx prisma generate
           npx tsc --noEmit
           
       - name: Check PHP Syntax
@@ -124,6 +125,7 @@ jobs:
         working-directory: ${{ matrix.backend }}
         run: |
           npm ci
+          npx prisma generate
           npm test
           
       - name: Run PHP Tests
