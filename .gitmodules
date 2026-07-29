@@ -1,0 +1,15 @@
+[submodule "gql-ddd-inventory"]
+	path = gql-ddd-inventory
+	url = https://github.com/bjohnson1279/gql-ddd-inventory.git
+[submodule "js-ddd-inventory"]
+	path = js-ddd-inventory
+	url = https://github.com/bjohnson1279/js-ddd-inventory.git
+[submodule "php-ddd-inventory"]
+	path = php-ddd-inventory
+	url = https://github.com/bjohnson1279/php-ddd-inventory.git
+[submodule "react-ddd-inventory-client"]
+	path = react-ddd-inventory-client
+	url = https://github.com/bjohnson1279/react-ddd-inventory-client.git
+[submodule "inventory-python-sidecar"]
+	path = inventory-python-sidecar
+	url = https://github.com/bjohnson1279/inventory-python-sidecar.git

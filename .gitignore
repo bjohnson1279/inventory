@@ -1,0 +1,11 @@
+# Temporary & log files
+open_prs_*.json
+*.log
+scripts.zip
+debug.log
+.antigravity/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

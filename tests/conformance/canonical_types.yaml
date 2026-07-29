@@ -1,0 +1,62 @@
+InventoryItem:
+  type: object
+Product:
+  type: object
+ProductVariant:
+  type: object
+Barcode:
+  type: object
+BarcodeAssignment:
+  type: object
+JournalEntry:
+  type: object
+JournalLine:
+  type: object
+SerializedItem:
+  type: object
+StatusTransition:
+  type: object
+ShopifyConnection:
+  type: object
+StockOnboarding:
+  type: object
+Item:
+  type: object
+ForecastingReportItem:
+  type: object
+FulfillmentPlan:
+  type: object
+FulfillmentAllocation:
+  type: object
+ReorderPolicy:
+  type: object
+WebhookSubscription:
+  type: object
+WebhookDeliveryLog:
+  type: object
+WarehouseLocation:
+  type: object
+PutawaySuggestion:
+  type: object
+PurchaseOrder:
+  type: object
+PurchaseOrderItem:
+  type: object
+User:
+  type: object
+AuditDiscrepancy:
+  type: object
+OutboxStats:
+  type: object
+OutboxEvent:
+  type: object
+TenantAccountingConfig:
+  type: object
+QuarantinedItem:
+  type: object
+ValuationItem:
+  type: object
+RfidTag:
+  type: object
+RfidScanUpdate:
+  type: object
