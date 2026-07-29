@@ -92,6 +92,20 @@ jobs:
       fail-fast: false
       matrix:
         backend: [gql-ddd-inventory, js-ddd-inventory, php-ddd-inventory]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: inventory_user
+          POSTGRES_PASSWORD: inventory_password
+          POSTGRES_DB: inventory_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
         with:
@@ -131,6 +145,10 @@ jobs:
           JWT_SECRET: test-jwt-secret
           DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db
           DB_PASSWORD: inventory_password
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: inventory_user
+          DB_NAME: inventory_db
         run: |
           npm ci
           npx prisma generate
