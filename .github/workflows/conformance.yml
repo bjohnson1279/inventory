@@ -74,7 +74,6 @@ jobs:
         env:
           JWT_SECRET: test-jwt-secret
           DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db?schema=public
-          DB_PASSWORD: inventory_password
         run: |
           npm ci
           npx prisma generate
@@ -144,7 +143,6 @@ jobs:
         env:
           JWT_SECRET: test-jwt-secret
           DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db?schema=public
-          DB_PASSWORD: inventory_password
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: inventory_user
