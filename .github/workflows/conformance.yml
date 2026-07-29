@@ -134,6 +134,7 @@ jobs:
         run: |
           npm ci
           npx prisma generate
+          npx prisma db push --skip-generate || true
           npm test
           
       - name: Run PHP Tests
