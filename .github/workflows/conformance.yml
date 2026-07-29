@@ -12,18 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
           
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
           
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -51,6 +51,8 @@ jobs:
         backend: [gql-ddd-inventory, js-ddd-inventory, php-ddd-inventory]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       
       - name: Setup Node.js (for TS)
         if: matrix.backend != 'php-ddd-inventory'
@@ -87,6 +89,8 @@ jobs:
         backend: [gql-ddd-inventory, js-ddd-inventory, php-ddd-inventory]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       
       - name: Setup Node.js
         if: matrix.backend != 'php-ddd-inventory'
@@ -135,6 +139,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       
       - name: Run Docker Compose
         run: |
