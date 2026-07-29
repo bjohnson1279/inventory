@@ -73,7 +73,7 @@ jobs:
         working-directory: ${{ matrix.backend }}
         env:
           JWT_SECRET: test-jwt-secret
-          DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db
+          DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db?schema=public
           DB_PASSWORD: inventory_password
         run: |
           npm ci
@@ -143,7 +143,7 @@ jobs:
         working-directory: ${{ matrix.backend }}
         env:
           JWT_SECRET: test-jwt-secret
-          DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db
+          DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db?schema=public
           DB_PASSWORD: inventory_password
           DB_HOST: localhost
           DB_PORT: 5432
@@ -152,7 +152,7 @@ jobs:
         run: |
           npm ci
           npx prisma generate
-          npx prisma db push --skip-generate || true
+          npx prisma db push --accept-data-loss
           npm test
           
       - name: Run PHP Tests
