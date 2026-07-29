@@ -71,6 +71,10 @@ jobs:
       - name: Check TypeScript Syntax
         if: matrix.backend != 'php-ddd-inventory'
         working-directory: ${{ matrix.backend }}
+        env:
+          JWT_SECRET: test-jwt-secret
+          DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db
+          DB_PASSWORD: inventory_password
         run: |
           npm ci
           npx prisma generate
@@ -123,6 +127,10 @@ jobs:
       - name: Run TypeScript Tests
         if: matrix.backend != 'php-ddd-inventory'
         working-directory: ${{ matrix.backend }}
+        env:
+          JWT_SECRET: test-jwt-secret
+          DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db
+          DB_PASSWORD: inventory_password
         run: |
           npm ci
           npx prisma generate
