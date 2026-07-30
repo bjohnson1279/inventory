@@ -385,6 +385,11 @@ def create_openapi(server_url):
             "/api/notifications": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
             "/api/compliance/ledger": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
             "/api/compliance/verify": {"post": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
+            "/api/compliance/reconstruct": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
+            "/api/compliance/replay": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
+            "/api/admin/cache/stats": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
+            "/api/admin/cache/clear": {"post": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
+
             "/api/audit": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
             "/api/warehouse-locations": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},
             "/api/warehouse-locations/putaway": {"get": {"security": [{"bearerAuth": []}], "responses": {"200": {"description": "OK"}}}},

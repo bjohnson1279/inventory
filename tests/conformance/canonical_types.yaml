@@ -60,3 +60,10 @@ RfidTag:
   type: object
 RfidScanUpdate:
   type: object
+ReconstructedState:
+  type: object
+AuditReplayStep:
+  type: object
+CacheStats:
+  type: object
+

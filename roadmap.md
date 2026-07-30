@@ -71,5 +71,5 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 #### 10. Platform Resiliency & Event Sourcing
 
-• **Event-Sourced Point-in-Time State Reconstruction & Audit Replay**: Reconstruct historical stock levels, bin configurations, and account balances as of any exact timestamp using the cryptographic ledger.
-• **Tier-2 Distributed Redis Cache with Outbox Invalidation**: High-performance caching layer in front of DB repositories with pub/sub cache invalidation driven by transactional outbox events.
+• ~~**Event-Sourced Point-in-Time State Reconstruction & Audit Replay**: Reconstruct historical stock levels, bin configurations, and account balances as of any exact timestamp using the cryptographic ledger.~~ (Completed)
+• ~~**Tier-2 Distributed Redis Cache with Outbox Invalidation**: High-performance caching layer in front of DB repositories with pub/sub cache invalidation driven by transactional outbox events.~~ (Completed)

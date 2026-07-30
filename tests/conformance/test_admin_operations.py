@@ -17,3 +17,8 @@ async def test_outbox_stats_and_dead_letters(backend, authenticated_client):
 @pytest.mark.asyncio
 async def test_rfid_tag_operations(backend, authenticated_client):
     pass
+
+@pytest.mark.asyncio
+async def test_tier2_redis_cache_and_outbox_invalidation(backend, authenticated_client):
+    pass
+
