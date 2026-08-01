@@ -124,6 +124,9 @@ services:
     working_dir: /app
     environment:
       - PYTHONPATH=/app
+      - GRAPHQL_URL=http://gql-backend:4000
+      - EXPRESS_REST_URL=http://express-backend:5000
+      - PHP_REST_URL=http://php-backend:8000
     depends_on:
       gql-backend:
         condition: service_healthy
@@ -134,7 +137,7 @@ services:
     networks:
       - conformance-net
     command: >
-      sh -c "pip install -q httpx pytest pytest-json-report &&
+      sh -c "pip install -q -r /app/tests/conformance/requirements.txt &&
              python scripts/run_conformance.py --seed --verbose --report-dir /app/conformance-report"
 
 networks:

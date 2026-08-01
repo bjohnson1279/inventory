@@ -1,3 +1,4 @@
+import os
 import pytest
 import pytest_asyncio
 from enum import Enum
@@ -12,9 +13,9 @@ class BackendType(Enum):
     PHP_REST = "PHP_REST"
 
 BACKEND_URLS = {
-    BackendType.GRAPHQL: "http://localhost:4000",
-    BackendType.EXPRESS_REST: "http://localhost:5000",
-    BackendType.PHP_REST: "http://localhost:8000"
+    BackendType.GRAPHQL: os.getenv("GRAPHQL_URL", "http://localhost:4000"),
+    BackendType.EXPRESS_REST: os.getenv("EXPRESS_REST_URL", "http://localhost:5000"),
+    BackendType.PHP_REST: os.getenv("PHP_REST_URL", "http://localhost:8000")
 }
 
 @pytest.fixture(params=[BackendType.GRAPHQL, BackendType.EXPRESS_REST, BackendType.PHP_REST])

@@ -13,10 +13,12 @@ except ImportError:
     sys.exit(1)
 
 
+import os
+
 BACKENDS = {
-    "gql": "http://localhost:4000",
-    "express": "http://localhost:5000",
-    "php": "http://localhost:8000",
+    "gql": os.getenv("GRAPHQL_URL", "http://localhost:4000"),
+    "express": os.getenv("EXPRESS_REST_URL", "http://localhost:5000"),
+    "php": os.getenv("PHP_REST_URL", "http://localhost:8000"),
 }
 
 def check_health(url: str) -> bool:
