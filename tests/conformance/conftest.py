@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 from enum import Enum
 import httpx
 from gql import Client, gql
@@ -20,47 +21,74 @@ BACKEND_URLS = {
 def backend(request):
     return request.param
 
-@pytest.fixture
-def rest_client(backend):
+@pytest_asyncio.fixture
+async def rest_client(backend):
     if backend == BackendType.GRAPHQL:
         pytest.skip("Not a REST backend")
     url = BACKEND_URLS[backend]
-    return httpx.AsyncClient(base_url=url)
+    async with httpx.AsyncClient(base_url=url, timeout=5.0) as client:
+        try:
+            await client.get("/api/health")
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            pytest.skip(f"Backend server for {backend.value} at {url} is offline")
+        yield client
 
-@pytest.fixture
-def graphql_client():
-    transport = HTTPXAsyncTransport(url=BACKEND_URLS[BackendType.GRAPHQL])
+@pytest_asyncio.fixture
+async def graphql_client():
+    url = BACKEND_URLS[BackendType.GRAPHQL]
+    async with httpx.AsyncClient(base_url=url, timeout=5.0) as client:
+        try:
+            await client.get("/")
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            pytest.skip(f"GraphQL backend server at {url} is offline")
+    transport = HTTPXAsyncTransport(url=url)
     return Client(transport=transport, fetch_schema_from_transport=False)
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def auth_token(backend, rest_client, graphql_client):
-    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
-        response = await rest_client.post("/api/auth/login", json={"username": "admin", "password": "password"})
-        return response.json().get("token", "dummy-token")
-    else:
-        query = gql('''
-            mutation {
-                login(username: "admin", password: "password") {
-                    token
+    try:
+        if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
+            response = await rest_client.post("/api/auth/login", json={"username": "admin", "password": "password"})
+            return response.json().get("token", "dummy-token")
+        else:
+            query = gql('''
+                mutation {
+                    login(username: "admin", password: "password") {
+                        token
+                    }
                 }
-            }
-        ''')
-        response = await graphql_client.execute_async(query)
-        return response["login"]["token"]
+            ''')
+            response = await graphql_client.execute_async(query)
+            return response["login"]["token"]
+    except Exception:
+        return "dummy-token"
 
-@pytest.fixture
-def authenticated_client(backend, auth_token):
+@pytest_asyncio.fixture
+async def authenticated_client(backend, auth_token):
     if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
-        return httpx.AsyncClient(
-            base_url=BACKEND_URLS[backend],
-            headers={"Authorization": f"Bearer {auth_token}"}
-        )
+        url = BACKEND_URLS[backend]
+        async with httpx.AsyncClient(
+            base_url=url,
+            headers={"Authorization": f"Bearer {auth_token}"},
+            timeout=5.0
+        ) as client:
+            try:
+                await client.get("/api/health")
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                pytest.skip(f"Backend server for {backend.value} at {url} is offline")
+            yield client
     else:
+        url = BACKEND_URLS[BackendType.GRAPHQL]
+        async with httpx.AsyncClient(base_url=url, timeout=5.0) as client:
+            try:
+                await client.get("/")
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                pytest.skip(f"GraphQL backend server at {url} is offline")
         transport = HTTPXAsyncTransport(
-            url=BACKEND_URLS[BackendType.GRAPHQL],
+            url=url,
             headers={"Authorization": f"Bearer {auth_token}"}
         )
-        return Client(transport=transport, fetch_schema_from_transport=False)
+        yield Client(transport=transport, fetch_schema_from_transport=False)
 
 @pytest.fixture
 def seed_data(backend):

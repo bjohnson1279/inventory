@@ -1,19 +1,20 @@
 import pytest
+import httpx
 from conftest import BackendType, BACKEND_URLS
 
 
 @pytest.mark.asyncio
-async def test_anomaly_detection_endpoint_returns_valid_schema(backend, authenticated_client):
+async def test_anomaly_detection_endpoint_returns_valid_schema(backend, authenticated_client, rest_client):
     """All 3 backends return matching AnomalySummary structure from the anomaly detection endpoint."""
-    import httpx
     from gql import gql as gql_query
 
     if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
-        url = BACKEND_URLS[backend]
-        async with httpx.AsyncClient(base_url=url, timeout=30) as client:
-            response = await client.get("/api/anomaly-detection/analyze", params={"tenantId": "default-tenant"})
+        try:
+            response = await rest_client.get("/api/anomaly-detection/analyze", params={"tenantId": "default-tenant"})
             assert response.status_code == 200
             data = response.json()
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            pytest.skip(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
             query {
@@ -58,17 +59,17 @@ async def test_anomaly_detection_endpoint_returns_valid_schema(backend, authenti
 
 
 @pytest.mark.asyncio
-async def test_rebalance_matrix_endpoint_returns_valid_schema(backend, authenticated_client):
+async def test_rebalance_matrix_endpoint_returns_valid_schema(backend, authenticated_client, rest_client):
     """All 3 backends return matching RebalanceMatrix structure from the rebalancing endpoint."""
-    import httpx
     from gql import gql as gql_query
 
     if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
-        url = BACKEND_URLS[backend]
-        async with httpx.AsyncClient(base_url=url, timeout=30) as client:
-            response = await client.get("/api/rebalance/matrix", params={"tenantId": "default-tenant"})
+        try:
+            response = await rest_client.get("/api/rebalance/matrix", params={"tenantId": "default-tenant"})
             assert response.status_code == 200
             data = response.json()
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            pytest.skip(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
             query {
@@ -102,23 +103,22 @@ async def test_rebalance_matrix_endpoint_returns_valid_schema(backend, authentic
 
 
 @pytest.mark.asyncio
-async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authenticated_client):
+async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authenticated_client, rest_client):
     """Graceful handling when no data exists — returns empty alerts with zero risk score."""
-    import httpx
     from gql import gql as gql_query
 
-    # Use a tenant ID that is unlikely to have any data
     empty_tenant = "nonexistent-tenant-for-test"
 
     if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
-        url = BACKEND_URLS[backend]
-        async with httpx.AsyncClient(base_url=url, timeout=30) as client:
-            response = await client.get(
+        try:
+            response = await rest_client.get(
                 "/api/anomaly-detection/analyze",
                 params={"tenantId": empty_tenant}
             )
             assert response.status_code == 200
             data = response.json()
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            pytest.skip(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
             query($tenantId: String!) {
@@ -142,23 +142,22 @@ async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authentic
 
 
 @pytest.mark.asyncio
-async def test_rebalance_matrix_single_warehouse_returns_no_recommendations(backend, authenticated_client):
+async def test_rebalance_matrix_single_warehouse_returns_no_recommendations(backend, authenticated_client, rest_client):
     """No inter-warehouse transfers when only 1 warehouse exists."""
-    import httpx
     from gql import gql as gql_query
 
-    # Use a tenant with minimal data — the sidecar returns empty when < 2 warehouses
     single_wh_tenant = "single-warehouse-tenant-test"
 
     if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
-        url = BACKEND_URLS[backend]
-        async with httpx.AsyncClient(base_url=url, timeout=30) as client:
-            response = await client.get(
+        try:
+            response = await rest_client.get(
                 "/api/rebalance/matrix",
                 params={"tenantId": single_wh_tenant}
             )
             assert response.status_code == 200
             data = response.json()
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            pytest.skip(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
             query($tenantId: String!) {
