@@ -73,3 +73,11 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 • ~~**Event-Sourced Point-in-Time State Reconstruction & Audit Replay**: Reconstruct historical stock levels, bin configurations, and account balances as of any exact timestamp using the cryptographic ledger.~~ (Completed)
 • ~~**Tier-2 Distributed Redis Cache with Outbox Invalidation**: High-performance caching layer in front of DB repositories with pub/sub cache invalidation driven by transactional outbox events.~~ (Completed)
+
+#### 11. Enterprise Logistics, Hardware & Intelligence Extensions
+
+• **Enterprise Logistics & ERP Integrations Framework**: Carrier shipping rate calculation, shipping label / BOL generation (FedEx, UPS, DHL, LTL), and 2-way sync adapters for QuickBooks, NetSuite, and Xero journal postings. *(In Progress)*
+• **Reverse Logistics & Supplier Portal Workflow**: Customer RMA returns inspection, quality grading (Restock, Refurbish, Scrap), and supplier ASN / OTIF performance scorecard portal. *(Planned)*
+• **Thermal Printing & AR-Guided Operations**: Direct ZPL/TSPL thermal printing engine for bin/lot tags and WebXR/AR visual pick-and-pack guidance. *(Planned)*
+• **Warehouse Digital Twin & Conversational AI Copilot**: Discrete-event scenario simulator for stress-testing fulfillment strategies and LLM-powered natural language warehouse metrics assistant. *(Planned)*
+• **ESG Carbon Footprint & Scope 1-3 Emissions Tracking**: Transport mode and warehouse energy carbon emissions calculator for regulatory ESG sustainability reporting. *(Planned)*
