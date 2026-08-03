@@ -9,3 +9,10 @@ debug.log
 # OS files
 .DS_Store
 Thumbs.db
+
+# Bot scratch verification files
+test.js
+test_*.ts
+test_*.js
+*.scratch
+
