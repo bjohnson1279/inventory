@@ -14,5 +14,7 @@ Thumbs.db
 test.js
 test_*.ts
 test_*.js
+test_*.py
 *.scratch
+scratch/
 

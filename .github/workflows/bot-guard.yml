@@ -1,0 +1,63 @@
+name: Automated Bot Guardrail
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  audit-bot-pr:
+    name: Audit Bot PR Diff & Guardrails
+    runs-on: ubuntu-latest
+    if: contains(github.actor, 'jules') || contains(github.actor, 'sentinel') || contains(github.head_ref, 'sentinel') || contains(github.head_ref, 'jules') || contains(github.head_ref, 'bolt') || contains(github.head_ref, 'palette')
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Inspect Diff for Submodule Violations & Regressions
+        run: |
+          echo "=== Auditing PR Diff for Submodule Violations, Bot Regressions & Hallucinations ==="
+
+          # 1. Check for Submodule modifications or submodule commit pointer changes
+          SUBMODULE_PATHS="gql-ddd-inventory|js-ddd-inventory|php-ddd-inventory|react-ddd-inventory-client|inventory-python-sidecar"
+          SUBMODULE_DIFF=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "^($SUBMODULE_PATHS)" || true)
+          if [ -n "$SUBMODULE_DIFF" ]; then
+            echo "❌ ERROR: PR modifies submodules or submodule commit pointers in the parent repository:"
+            echo "$SUBMODULE_DIFF"
+            echo ""
+            echo "Submodule changes must be submitted directly to their respective repositories:"
+            echo " - bjohnson1279/gql-ddd-inventory"
+            echo " - bjohnson1279/js-ddd-inventory"
+            echo " - bjohnson1279/php-ddd-inventory"
+            echo " - bjohnson1279/react-ddd-inventory-client"
+            echo " - bjohnson1279/inventory-python-sidecar"
+            exit 1
+          fi
+
+          # 2. Check for zero-diff or hallucinatory acknowledgment PRs
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -v '^\.jules/' | grep -v '^\.Jules/' | grep -v 'package.*json' | grep -v 'composer\.lock' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "❌ ERROR: PR contains 0 code changes (hallucinatory task acknowledgment). Auto-failing."
+            exit 1
+          fi
+
+          # 3. Check for forbidden scratch files
+          SCRATCH_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^test(_.*)?\.(ts|js|py)$|.*\.scratch$' || true)
+          if [ -n "$SCRATCH_FILES" ]; then
+            echo "❌ ERROR: PR contains forbidden scratch verification files:"
+            echo "$SCRATCH_FILES"
+            exit 1
+          fi
+
+          # 4. Check for line deletions in critical orchestration/conformance files
+          DELETED_LINES=$(git diff --stat origin/${{ github.base_ref }}...HEAD | grep -E 'docker-compose.*\.yml|pytest\.ini|\.gitmodules' | awk '{print $5}' | grep '-' || true)
+          for count in $DELETED_LINES; do
+            num=$(echo "$count" | tr -d '-')
+            if [ "$num" -gt 15 ]; then
+              echo "❌ ERROR: PR deletes $num lines from a core configuration file, exceeding safety threshold (max 15)."
+              exit 1
+            fi
+          done
+
+          echo "✅ Bot Guardrail Passed: No submodule modifications, scratch files, or regressions detected."

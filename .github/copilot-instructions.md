@@ -102,6 +102,12 @@ docker compose up -d db
 vendor/bin/phpunit
 ```
 
+## Submodule Boundaries & Bot Guardrails
+
+- **Do Not Modify Submodules in Parent Repo PRs**: The directories `gql-ddd-inventory/`, `js-ddd-inventory/`, `php-ddd-inventory/`, `react-ddd-inventory-client/`, and `inventory-python-sidecar/` are standalone git submodules.
+- Any PR submitted to `bjohnson1279/inventory` that modifies files within these submodule paths or alters submodule commit hashes will be auto-rejected by the `.github/workflows/bot-guard.yml` CI workflow.
+- Always perform child repo code changes and pull requests directly within the submodule's own repository.
+
 ## Notes for Copilot
 
 - This repository is intentionally multi-stack; do not unify code from one app into another unless the user explicitly asks to port features.
