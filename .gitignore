@@ -1,5 +1,7 @@
 # Temporary & log files
 open_prs_*.json
+audited_prs_*.json
+triage_report_*.md
 *.log
 scripts.zip
 debug.log
