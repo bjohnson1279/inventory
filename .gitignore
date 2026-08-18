@@ -1,9 +1,14 @@
 # Temporary & log files
-open_prs_*.json
-audited_prs_*.json
-triage_report_*.md
+open_prs*.json
+audited_prs*.json
+triage_report*.md
+evaluation*.json
+evaluation*.md
+pr_evaluation_report*.md
+harvest_report*.json
 *.log
 scripts.zip
+
 debug.log
 .antigravity/
 .vscode/
