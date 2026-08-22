@@ -48,19 +48,22 @@ async def graphql_client():
 @pytest_asyncio.fixture
 async def auth_token(backend, rest_client, graphql_client):
     try:
+        login_payload = {
+            "tenantId": "default-tenant",
+            "email": "admin@example.com",
+            "password": "password"
+        }
         if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
-            response = await rest_client.post("/api/auth/login", json={"username": "admin", "password": "password"})
+            response = await rest_client.post("/api/auth/login", json=login_payload)
             return response.json().get("token", "dummy-token")
         else:
             query = gql('''
                 mutation {
-                    login(username: "admin", password: "password") {
-                        token
-                    }
+                    login(tenantId: "default-tenant", email: "admin@example.com", password: "password")
                 }
             ''')
             response = await graphql_client.execute_async(query)
-            return response["login"]["token"]
+            return response["login"]
     except Exception:
         return "dummy-token"
 

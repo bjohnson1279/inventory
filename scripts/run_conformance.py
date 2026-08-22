@@ -64,14 +64,38 @@ def wait_for_backends(max_retries: int = 30, initial_delay: float = 2.0):
 
 def seed_data():
     print("\n--- Seeding Test Data ---")
+    setup_payload = {
+        "orgName": "Test Org",
+        "tenantId": "default-tenant",
+        "adminName": "Admin",
+        "adminEmail": "admin@example.com",
+        "adminPassword": "password"
+    }
+    
     for name, url in BACKENDS.items():
-        seed_url = f"{url}/api/auth/setup"
         try:
-            res = httpx.post(seed_url, timeout=10.0)
+            if name == "gql":
+                seed_url = f"{url}/"
+                mutation = """
+                mutation {
+                    setup(
+                        orgName: "Test Org",
+                        tenantId: "default-tenant",
+                        adminName: "Admin",
+                        adminEmail: "admin@example.com",
+                        adminPassword: "password"
+                    )
+                }
+                """
+                res = httpx.post(seed_url, json={"query": mutation}, timeout=10.0)
+            else:
+                seed_url = f"{url}/api/auth/setup"
+                res = httpx.post(seed_url, json=setup_payload, timeout=10.0)
+                
             if res.status_code in (200, 201):
                 print(f"[\033[92mOK\033[0m] {name:10} seeded successfully")
             else:
-                print(f"[\033[93mWARN\033[0m] {name:10} seeding returned {res.status_code}")
+                print(f"[\033[93mWARN\033[0m] {name:10} seeding returned {res.status_code} - {res.text}")
         except Exception as e:
             print(f"[\033[91mFAIL\033[0m] {name:10} seeding failed: {e}")
 
