@@ -86,12 +86,12 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 #### 12. Governance & Access Control 🔴 P0
 
-• **Granular Role-Based Access Control (RBAC) & Permission Engine**: Permission matrix (resource × action × scope), predefined role templates (warehouse_operator, inventory_manager, finance_auditor, admin, read_only), JWT claims enrichment with permissions array, middleware/guard decorators across all 3 backends, and a UI role management panel with permission toggles.
-• **Configurable Approval Workflows Engine**: Generic workflow engine defining trigger event → approval chain → escalation timeout → execution. Pre-built templates for PO approval (by $ threshold), stock adjustment sign-off, write-off dual authorization, and RMA disposition review. UI pending approvals inbox, approval history timeline, and webhook/outbox integration for external approval tools.
+• ~~**Granular Role-Based Access Control (RBAC) & Permission Engine**: Permission matrix (resource × action × scope), predefined role templates (warehouse_operator, inventory_manager, finance_auditor, admin, read_only), JWT claims enrichment with permissions array, middleware/guard decorators across all 3 backends, and a UI role management panel with permission toggles.~~ (Completed)
+• ~~**Configurable Approval Workflows Engine**: Generic workflow engine defining trigger event → approval chain → escalation timeout → execution. Pre-built templates for PO approval (by $ threshold), stock adjustment sign-off, write-off dual authorization, and RMA disposition review. UI pending approvals inbox, approval history timeline, and webhook/outbox integration for external approval tools.~~ (Completed)
 
 #### 13. Reporting & Analytics 🟠 P1
 
-• **Reporting, Saved Views & Export Engine**: Saved report definitions (filters, date range, grouping) stored per-tenant. Scheduled report generation (daily/weekly/monthly) via cron + outbox. Export formats: CSV, PDF (branded templates), Excel (XLSX). Report sharing with expiry and viewer permissions. Dashboard builder for custom KPI widget layouts.
+• **Reporting, Saved Views & Export Engine**: Saved report definitions (filters, date range, grouping) stored per-tenant. Scheduled report generation (daily/weekly/monthly) via cron + outbox. Export formats: CSV, PDF (branded templates), Excel (XLSX). Report sharing with expiry and viewer permissions. Dashboard builder for custom KPI widget layouts. *(Completed in js-ddd-inventory)*
 
 #### 14. Ecosystem & Channel Integrations 🟠 P1
 
