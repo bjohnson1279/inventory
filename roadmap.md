@@ -95,7 +95,7 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 #### 14. Ecosystem & Channel Integrations 🟠 P1
 
-• **Omnichannel Sales Integration Framework**: Generalized channel adapter interface (sync_inventory, ingest_orders, push_fulfillment_status). Adapters for Shopify (upgrade from stub), Amazon SP-API, WooCommerce REST, and generic CSV/EDI. Channel-specific inventory allocation pools, centralized order ingestion feeding the existing fulfillment routing engine, and oversell conflict resolution across channels.
+• ~~**Omnichannel Sales Integration Framework**: Generalized channel adapter interface (sync_inventory, ingest_orders, push_fulfillment_status). Adapters for Shopify (upgrade from stub), Amazon SP-API, WooCommerce REST, and generic CSV/EDI. Channel-specific inventory allocation pools, centralized order ingestion feeding the existing fulfillment routing engine, and oversell conflict resolution across channels.~~ *(Completed in js-ddd-inventory)*
 
 #### 15. Operational Depth 🟡 P2
 
