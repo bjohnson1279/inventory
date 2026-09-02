@@ -1,0 +1,28 @@
+
+[bjohnson1279/js-ddd-inventory]
+None
+[bjohnson1279/gql-ddd-inventory]
+658	chore(deps): bump the npm_and_yarn group across 1 directory with 2 updates	app/dependabot
+654	fix: restrict setup mutation in production	app/google-labs-jules
+653	ðŸ§¹ [code health] Remove development console.log statements from TenantProvisioner	app/google-labs-jules
+652	ðŸ§¹ [code health improvement] Remove leftover development console.logs in integration clients	app/google-labs-jules
+647	Refactor `formatError` for diff consistency while preserving stack trace stripping	app/google-labs-jules
+646	ðŸ§¹ [code health improvement] Remove development console.log statements from TenantProvisioner	app/google-labs-jules
+644	ðŸ§¹ [code health improvement description] Remove development logs from TenantConnectionPool.ts	app/google-labs-jules
+643	ðŸ§ª Add tests for WeightedAverageCostingStrategy	app/google-labs-jules
+642	ðŸ§¹ Remove development console.log from QuickBooksClient	app/google-labs-jules
+640	ðŸ§¹ [code health improvement] Remove development console.log statements from TenantProvisioner	app/google-labs-jules
+638	ðŸ§¹ Remove development console.log in RLS setup	app/google-labs-jules
+635	ðŸ§ª [Testing] Add missing tests for StandardUnits service	app/google-labs-jules
+629	ðŸ§ª [testing improvement] Add tests for CRDTStockResolver	app/google-labs-jules
+628	ðŸ§ª [testing improvement] Add tests for traceContext telemetry	app/google-labs-jules
+621	ðŸ§ª [testing improvement] Add validation logic tests for assertUnitIsKnown in ProductUomConfiguration	app/google-labs-jules
+618	ðŸ§ª Add tests for Shopify HMAC verification	app/google-labs-jules
+
+[bjohnson1279/php-ddd-inventory]
+None
+[bjohnson1279/react-ddd-inventory-client]
+173	ðŸ§¹ Remove unused Spinner import in AnomalyDetectionPanel	app/google-labs-jules
+168	ðŸ§ª Add unit tests for DashboardPanel	app/google-labs-jules
+165	ðŸ§ª [add tests for DashboardPanel]	app/google-labs-jules
+153	chore(deps-dev): bump @vitest/coverage-v8 from 4.1.10 to 4.1.11	app/dependabot

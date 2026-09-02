@@ -1,0 +1,37 @@
+
+[bjohnson1279/js-ddd-inventory]
+738	chore(deps-dev): bump browserslist from 4.28.4 to 4.28.8 in the npm_and_yarn group across 1 directory	app/dependabot
+737	🛡️ Sentinel: [HIGH] Fix SSRF vulnerability in webhook delivery	app/google-labs-jules
+727	Wire submitDecision endpoint	app/google-labs-jules
+725	Acknowledge pre-completed wiring for createWorkflow endpoint	app/google-labs-jules
+720	🧹 [code health improvement description]	app/google-labs-jules
+717	Verify and acknowledge toggleWorkflow endpoint wiring	app/google-labs-jules
+
+[bjohnson1279/gql-ddd-inventory]
+658	chore(deps): bump the npm_and_yarn group across 1 directory with 2 updates	app/dependabot
+654	fix: restrict setup mutation in production	app/google-labs-jules
+653	🧹 [code health] Remove development console.log statements from TenantProvisioner	app/google-labs-jules
+652	🧹 [code health improvement] Remove leftover development console.logs in integration clients	app/google-labs-jules
+647	Refactor `formatError` for diff consistency while preserving stack trace stripping	app/google-labs-jules
+646	🧹 [code health improvement] Remove development console.log statements from TenantProvisioner	app/google-labs-jules
+644	🧹 [code health improvement description] Remove development logs from TenantConnectionPool.ts	app/google-labs-jules
+643	🧪 Add tests for WeightedAverageCostingStrategy	app/google-labs-jules
+642	🧹 Remove development console.log from QuickBooksClient	app/google-labs-jules
+640	🧹 [code health improvement] Remove development console.log statements from TenantProvisioner	app/google-labs-jules
+638	🧹 Remove development console.log in RLS setup	app/google-labs-jules
+635	🧪 [Testing] Add missing tests for StandardUnits service	app/google-labs-jules
+629	🧪 [testing improvement] Add tests for CRDTStockResolver	app/google-labs-jules
+628	🧪 [testing improvement] Add tests for traceContext telemetry	app/google-labs-jules
+621	🧪 [testing improvement] Add validation logic tests for assertUnitIsKnown in ProductUomConfiguration	app/google-labs-jules
+618	🧪 Add tests for Shopify HMAC verification	app/google-labs-jules
+
+[bjohnson1279/php-ddd-inventory]
+569	🛡️ Sentinel: [LOW] Add security headers	app/google-labs-jules
+568	⚡ Bolt: Replace array_flip() with pluck(key, value) in AuditProcessorService	app/google-labs-jules
+566	🧹 [code health] Remove unused import of ProductLocationModel	app/google-labs-jules
+
+[bjohnson1279/react-ddd-inventory-client]
+173	🧹 Remove unused Spinner import in AnomalyDetectionPanel	app/google-labs-jules
+168	🧪 Add unit tests for DashboardPanel	app/google-labs-jules
+165	🧪 [add tests for DashboardPanel]	app/google-labs-jules
+153	chore(deps-dev): bump @vitest/coverage-v8 from 4.1.10 to 4.1.11	app/dependabot
