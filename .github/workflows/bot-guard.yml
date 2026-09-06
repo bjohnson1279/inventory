@@ -15,11 +15,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Inspect Diff for Submodule Violations & Regressions
+      - name: Inspect Diff for Submodule Violations, Bot Regressions & Conflict Markers
         run: |
-          echo "=== Auditing PR Diff for Submodule Violations, Bot Regressions & Hallucinations ==="
+          echo "=== Auditing PR Diff for Submodule Violations, Bot Regressions & Conflict Markers ==="
 
-          # 1. Check for Submodule modifications or submodule commit pointer changes
+          # 1. Reject Unresolved Git Merge Conflict Markers
+          CONFLICTS=$(git diff origin/${{ github.base_ref }}...HEAD | grep -E '^\+\s*(\<{7}|\={7}|\>{7}|\|{7})' || true)
+          if [ -n "$CONFLICTS" ]; then
+            echo "❌ ERROR: PR adds unresolved Git merge conflict markers (<<<<<<<, =======, >>>>>>>). Auto-failing."
+            echo "$CONFLICTS"
+            exit 1
+          fi
+
+          # 2. Check for Submodule modifications or submodule commit pointer changes
           SUBMODULE_PATHS="gql-ddd-inventory|js-ddd-inventory|php-ddd-inventory|react-ddd-inventory-client|inventory-python-sidecar"
           SUBMODULE_DIFF=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "^($SUBMODULE_PATHS)" || true)
           if [ -n "$SUBMODULE_DIFF" ]; then
@@ -35,14 +43,14 @@ jobs:
             exit 1
           fi
 
-          # 2. Check for zero-diff or hallucinatory acknowledgment PRs
+          # 3. Check for zero-diff or hallucinatory acknowledgment PRs
           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -v '^\.jules/' | grep -v '^\.Jules/' | grep -v 'package.*json' | grep -v 'composer\.lock' || true)
           if [ -z "$CHANGED_FILES" ]; then
             echo "❌ ERROR: PR contains 0 code changes (hallucinatory task acknowledgment). Auto-failing."
             exit 1
           fi
 
-          # 3. Check for forbidden scratch files
+          # 4. Check for forbidden scratch files
           SCRATCH_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^test(_.*)?\.(ts|js|py)$|.*\.scratch$' || true)
           if [ -n "$SCRATCH_FILES" ]; then
             echo "❌ ERROR: PR contains forbidden scratch verification files:"
@@ -50,7 +58,7 @@ jobs:
             exit 1
           fi
 
-          # 4. Check for line deletions in critical orchestration/conformance files
+          # 5. Check for line deletions in critical orchestration/conformance files
           DELETED_LINES=$(git diff --stat origin/${{ github.base_ref }}...HEAD | grep -E 'docker-compose.*\.yml|pytest\.ini|\.gitmodules' | awk '{print $5}' | grep '-' || true)
           for count in $DELETED_LINES; do
             num=$(echo "$count" | tr -d '-')
@@ -60,4 +68,4 @@ jobs:
             fi
           done
 
-          echo "✅ Bot Guardrail Passed: No submodule modifications, scratch files, or regressions detected."
+          echo "✅ Bot Guardrail Passed: No submodule modifications, scratch files, conflict markers, or regressions detected."
