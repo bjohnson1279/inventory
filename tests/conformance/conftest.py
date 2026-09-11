@@ -7,7 +7,13 @@ from gql import Client, gql
 from gql.transport.httpx import HTTPXAsyncTransport
 from typing import Dict, Any, Optional
 
+# BackendType enumeration - used by conformance tests to parameterize backend selection
+from enum import Enum
+
 class BackendType(Enum):
+    EXPRESS_PRISMA = 'express-prisma'
+    GRAPHQL_PRISMA = 'gql-ddd-inventory'  # Prisma GraphQL serverless / Next.js
+    PHP_LARAVEL = 'php-laravel'
     GRAPHQL = "GRAPHQL"
     EXPRESS_REST = "EXPRESS_REST"
     PHP_REST = "PHP_REST"
