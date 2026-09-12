@@ -107,4 +107,16 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 #### 16. Financial & Platform Maturity 🟢 P3
 
 • **Intercompany & Multi-Entity Transfer Accounting**: Entity/legal-entity layer above tenant, intercompany transfer pricing rules (cost-plus, market-based), automatic intercompany elimination journal entries, transfer duty/tariff recording for cross-border movements, and consolidation reports across entities.
-• **API Rate Limiting, Usage Metering & Tenant Billing Hooks**: Per-tenant rate limiting (sliding window, token bucket), API usage metering (requests/day, storage, active SKUs, active locations), usage dashboard per tenant, billing event hooks (outbox events for Stripe/billing system ingestion), and configurable tier limits.
+• **API Rate Limiting, Usage Metering & Tenant Billing Hooks**: Per-tenant rate limiting (sliding window, token bucket), API usage metering (requests/day, storage, active SKUs, active locations), usage dashboard per tenant, billing event hooks (outbox events for Stripe/billing system ingestion), and configurable tier limits.
+
+#### 17. Computer Vision & Automated QA 🟣 P4
+
+• **Computer Vision Receiving & QA Gateway**: Extension of the Python AI/FastAPI sidecar utilizing OpenCV and lightweight vision models (e.g., YOLO) at inbound docks. Features include automated volumetric dimensioning (L×W×H), OCR for recovering damaged/smudged supplier barcodes, and visual anomaly detection for damaged packaging prior to ledger entry.
+
+#### 18. Yield Management & Dynamic Pricing 🟣 P4
+
+• **Dynamic Pricing & Algorithmic Liquidation Engine**: Automated yield-management module that calculates holding costs vs. historical demand. Integrates with FEFO lot expiration proximity to automatically push progressive pricing markdowns via Omnichannel adapters (Shopify/Amazon) to maximize capital recovery on aging stock.
+
+#### 19. Workforce & Labor Management 🟣 P4
+
+• **Labor Management System (LMS) & Predictive Scheduling**: Tracks warehouse operator KPIs (picks/hour, cycle count accuracy, traversal distance). Correlates with the Machine Learning Demand Forecasting engine to generate predictive labor schedules, preventing understaffing during peak inbound/outbound waves. Includes a gamified UI dashboard for operator engagement.
