@@ -17,14 +17,16 @@ class BackendType(Enum):
     GRAPHQL = "GRAPHQL"
     EXPRESS_REST = "EXPRESS_REST"
     PHP_REST = "PHP_REST"
+    PYTHON_REST = "PYTHON_REST"
 
 BACKEND_URLS = {
     BackendType.GRAPHQL: os.getenv("GRAPHQL_URL", "http://localhost:4000"),
     BackendType.EXPRESS_REST: os.getenv("EXPRESS_REST_URL", "http://localhost:5000"),
-    BackendType.PHP_REST: os.getenv("PHP_REST_URL", "http://localhost:8000")
+    BackendType.PHP_REST: os.getenv("PHP_REST_URL", "http://localhost:8000"),
+    BackendType.PYTHON_REST: os.getenv("PYTHON_REST_URL", "http://localhost:8001")
 }
 
-@pytest.fixture(params=[BackendType.GRAPHQL, BackendType.EXPRESS_REST, BackendType.PHP_REST])
+@pytest.fixture(params=[BackendType.GRAPHQL, BackendType.EXPRESS_REST, BackendType.PHP_REST, BackendType.PYTHON_REST])
 def backend(request):
     return request.param
 
@@ -59,7 +61,7 @@ async def auth_token(backend, rest_client, graphql_client):
             "email": "admin@example.com",
             "password": "password"
         }
-        if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
+        if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST, BackendType.PYTHON_REST]:
             response = await rest_client.post("/api/auth/login", json=login_payload)
             return response.json().get("token", "dummy-token")
         else:
@@ -75,7 +77,7 @@ async def auth_token(backend, rest_client, graphql_client):
 
 @pytest_asyncio.fixture
 async def authenticated_client(backend, auth_token):
-    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
+    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST, BackendType.PYTHON_REST]:
         url = BACKEND_URLS[backend]
         async with httpx.AsyncClient(
             base_url=url,

@@ -115,6 +115,32 @@ services:
       retries: 10
       start_period: 120s
 
+  python-backend:
+    build:
+      context: ./python-ddd-inventory
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://inventory_user:inventory_password@postgres:5432/inventory_db
+      - JWT_SECRET=test-jwt-secret
+      - SHOPIFY_API_SECRET=test-shopify-secret
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=inventory_user
+      - DB_PASSWORD=inventory_password
+      - DB_NAME=inventory_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - conformance-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
   conformance-runner:
     image: python:3.11-slim
     volumes:
@@ -127,12 +153,15 @@ services:
       - GRAPHQL_URL=http://gql-backend:4000
       - EXPRESS_REST_URL=http://express-backend:5000
       - PHP_REST_URL=http://php-backend:8000
+      - PYTHON_REST_URL=http://python-backend:8000
     depends_on:
       gql-backend:
         condition: service_healthy
       express-backend:
         condition: service_healthy
       php-backend:
+        condition: service_healthy
+      python-backend:
         condition: service_healthy
     networks:
       - conformance-net

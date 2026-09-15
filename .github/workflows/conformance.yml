@@ -57,14 +57,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        backend: [gql-ddd-inventory, js-ddd-inventory, php-ddd-inventory]
+        backend: [gql-ddd-inventory, js-ddd-inventory, php-ddd-inventory, python-ddd-inventory]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       
       - name: Setup Node.js (for TS)
-        if: matrix.backend != 'php-ddd-inventory'
+        if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -78,7 +78,7 @@ jobs:
           php-version: '8.1'
           
       - name: Check TypeScript Syntax
-        if: matrix.backend != 'php-ddd-inventory'
+        if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         working-directory: ${{ matrix.backend }}
         env:
           JWT_SECRET: test-jwt-secret
@@ -93,13 +93,26 @@ jobs:
         working-directory: ${{ matrix.backend }}
         run: find src -type f -name "*.php" -exec php -l {} \; | (! grep -v "No syntax errors detected")
 
+      - name: Setup Python (for Python)
+        if: matrix.backend == 'python-ddd-inventory'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Check Python Syntax
+        if: matrix.backend == 'python-ddd-inventory'
+        working-directory: ${{ matrix.backend }}
+        run: |
+          python -m pip install flake8
+          flake8 src
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        backend: [gql-ddd-inventory, js-ddd-inventory, php-ddd-inventory]
+        backend: [gql-ddd-inventory, js-ddd-inventory, php-ddd-inventory, python-ddd-inventory]
     services:
       postgres:
         image: postgres:16
@@ -120,7 +133,7 @@ jobs:
           submodules: recursive
       
       - name: Setup Node.js
-        if: matrix.backend != 'php-ddd-inventory'
+        if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -147,7 +160,7 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
           
       - name: Run TypeScript Tests
-        if: matrix.backend != 'php-ddd-inventory'
+        if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         working-directory: ${{ matrix.backend }}
         env:
           JWT_SECRET: test-jwt-secret
@@ -168,6 +181,22 @@ jobs:
         run: |
           composer install --prefer-dist --no-progress
           vendor/bin/phpunit
+
+      - name: Setup Python (for Python Tests)
+        if: matrix.backend == 'python-ddd-inventory'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Run Python Tests
+        if: matrix.backend == 'python-ddd-inventory'
+        working-directory: ${{ matrix.backend }}
+        env:
+          JWT_SECRET: test-jwt-secret
+          DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db
+        run: |
+          python -m pip install -r requirements.txt
+          pytest tests/unit
 
   conformance-tests:
     name: Conformance Tests
