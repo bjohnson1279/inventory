@@ -196,7 +196,7 @@ jobs:
           DATABASE_URL: postgresql://inventory_user:inventory_password@localhost:5432/inventory_db
         run: |
           python -m pip install -r requirements.txt
-          pytest tests/unit
+          pytest tests
 
   conformance-tests:
     name: Conformance Tests
