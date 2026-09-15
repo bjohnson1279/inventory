@@ -16,10 +16,10 @@ The system models a complex warehouse inventory domain featuring multi-tenancy, 
                        +-------------------------+-------------------------+
                        |                         |                         |
                        v                         v                         v
-            +--------------------+    +--------------------+    +--------------------+
-            |  gql-ddd-inventory |    |  js-ddd-inventory  |    |  php-ddd-inventory |
-            |  (GraphQL / TS)    |    |  (Express REST / TS|    |  (Hexagonal / PHP) |
-            +----------+---------+    +----------+---------+    +----------+---------+
+            +--------------------+    +--------------------+    +--------------------+    +--------------------+
+            |  gql-ddd-inventory |    |  js-ddd-inventory  |    |  php-ddd-inventory |    |python-ddd-inventory|
+            |  (GraphQL / TS)    |    |  (Express REST / TS|    |  (Hexagonal / PHP) |    |  (FastAPI / Python)|
+            +----------+---------+    +----------+---------+    +----------+---------+    +----------+---------+
                        |                         |                         |
                        +-------------------------+-------------------------+
                                                  |
@@ -41,6 +41,7 @@ This parent repository links five standalone Git repositories as submodules:
 | **[gql-ddd-inventory](https://github.com/bjohnson1279/gql-ddd-inventory)** | TypeScript, Node.js, Express, Apollo Server, Prisma, PostgreSQL | Layered DDD / Subgraph Federation | GraphQL API, Apollo Federation v2, Prisma ORM |
 | **[js-ddd-inventory](https://github.com/bjohnson1279/js-ddd-inventory)** | TypeScript, Node.js, Express, Prisma, PostgreSQL | Bounded Context DDD | REST API, Bounded Context module structure |
 | **[php-ddd-inventory](https://github.com/bjohnson1279/php-ddd-inventory)** | PHP 8.2, Eloquent ORM, TimescaleDB, Mosquitto MQTT | Hexagonal (Ports & Adapters) | Pure PHP Hexagonal architecture, TimescaleDB ledgers |
+| **[python-ddd-inventory](https://github.com/bjohnson1279/python-ddd-inventory)** | Python 3.11, FastAPI, SQLAlchemy | Layered DDD | High-performance Python backend with async FastAPI |
 | **[react-ddd-inventory-client](https://github.com/bjohnson1279/react-ddd-inventory-client)** | React, TypeScript, Vite, TailwindCSS | SPA Client | Multi-backend admin dashboard & developer panels |
 | **[inventory-python-sidecar](https://github.com/bjohnson1279/inventory-python-sidecar)** | Python 3.11, FastAPI, NumPy, SciPy | Microservice Sidecar | 3D Manhattan distance slotting & ML shrinkage detection |
 
@@ -67,7 +68,7 @@ git submodule update --init --recursive
 
 ## 🧪 Cross-Backend Conformance Test Suite
 
-The repository includes an automated pytest-based black-box conformance test suite ([docker-compose.conformance.yml](docker-compose.conformance.yml)) that runs identical test vectors against all three backend variants to verify 100% behavioral, API payload, and error parity.
+The repository includes an automated pytest-based black-box conformance test suite ([docker-compose.conformance.yml](docker-compose.conformance.yml)) that runs identical test vectors against all four backend variants to verify 100% behavioral, API payload, and error parity.
 
 ### Run Conformance Tests via Docker Compose
 
@@ -87,7 +88,7 @@ The conformance suite verifies:
 
 ## 📑 Core Documentation
 
-* 📜 **[Architecture Summary](ARCHITECTURE_SUMMARY.md)**: In-depth comparison of the DDD patterns used across GraphQL, Express, and PHP backends.
+* 📜 **[Architecture Summary](ARCHITECTURE_SUMMARY.md)**: In-depth comparison of the DDD patterns used across GraphQL, Express, PHP, and Python backends.
 * 🗺️ **[Feature Roadmap](roadmap.md)**: Active and completed features across domain components, resilience patterns, and AI automation.
 
 ---

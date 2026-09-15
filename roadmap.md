@@ -23,13 +23,13 @@ Laravel repository codebases.~~ (Completed)
 
 #### 3. Frontend Consolidation
 
-• ~~Deprecated Frontend Codebases: While the new unified App.tsx handles all 3 backends, legacy independent
+• ~~Deprecated Frontend Codebases: While the new unified App.tsx handles all 4 backends, legacy independent
 frontends still exist in js-ddd-inventory/webapp/ and php-ddd-inventory/frontend/ . Deleting these folders and
 fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 #### 4. Advanced Domain Features & Observability
 
-• ~~**Distributed Tracing & Observability Parity**: Integrate OpenTelemetry to correlate and trace actions (like stock updates, Kafka outbox events, and accounting mappings) across the GraphQL, Express, and PHP backends.~~ (Completed)
+• ~~**Distributed Tracing & Observability Parity**: Integrate OpenTelemetry to correlate and trace actions (like stock updates, Kafka outbox events, and accounting mappings) across the GraphQL, Express, PHP, and Python backends.~~ (Completed)
 • ~~**Plug-and-Play Costing Strategies**: Implement a domain-layer strategy pattern to support LIFO and WAC (Weighted Average Cost) costing methods in addition to FIFO.~~ (Completed)
 • ~~**Intelligent Multi-Location Order Routing**: Build a warehouse routing engine optimizing splits, shipping fees, and location distance.~~ (Completed)
 • ~~**Dynamic Reorder Point (ROP) Tuning**: Implement automated ROP calculations based on sales velocity and lead-time variance.~~ (Completed)
@@ -55,13 +55,13 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 #### 7. Enterprise Supply Chain & Operational Resilience
 
-• ~~**Lot Expiration, FEFO Quarantine & Automated Recall Engine**: Traceability engine with serial lot tracking, expiration enforcement (FEFO), automated lot quarantine, and recall notification pipelines across all 3 backends.~~ (Completed)
+• ~~**Lot Expiration, FEFO Quarantine & Automated Recall Engine**: Traceability engine with serial lot tracking, expiration enforcement (FEFO), automated lot quarantine, and recall notification pipelines across all 4 backends.~~ (Completed)
 • ~~**Dynamic Cross-Docking & Direct Supplier Fulfillment Routing**: Direct transfer from inbound receiving docks to outbound dispatch bays bypassing warehouse bin put-away, and third-party supplier drop-ship routing logic.~~ (Completed)
 
 
 #### 8. Cross-Backend Conformance & Developer Experience
 
-• ~~**Polyglot Cross-Backend Conformance Test Suite**: Unified black-box integration test runner verifying 100% functional and behavioral parity across GraphQL, Express REST, and PHP REST backends.~~ (Completed)
+• ~~**Polyglot Cross-Backend Conformance Test Suite**: Unified black-box integration test runner verifying 100% functional and behavioral parity across GraphQL, Express REST, PHP REST, and Python REST backends.~~ (Completed)
 • ~~**Automated OpenAPI & GraphQL Schema Specification Synchronizer**: Automated generator and schema linting tool keeping OpenAPI 3.0 specs and GraphQL IDL definitions in sync with zero drift.~~ (Completed)
 
 #### 9. AI & Intelligent Automation
@@ -86,7 +86,7 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 #### 12. Governance & Access Control 🔴 P0
 
-• ~~**Granular Role-Based Access Control (RBAC) & Permission Engine**: Permission matrix (resource × action × scope), predefined role templates (warehouse_operator, inventory_manager, finance_auditor, admin, read_only), JWT claims enrichment with permissions array, middleware/guard decorators across all 3 backends, and a UI role management panel with permission toggles.~~ (Completed)
+• ~~**Granular Role-Based Access Control (RBAC) & Permission Engine**: Permission matrix (resource × action × scope), predefined role templates (warehouse_operator, inventory_manager, finance_auditor, admin, read_only), JWT claims enrichment with permissions array, middleware/guard decorators across all 4 backends, and a UI role management panel with permission toggles.~~ (Completed)
 • ~~**Configurable Approval Workflows Engine**: Generic workflow engine defining trigger event → approval chain → escalation timeout → execution. Pre-built templates for PO approval (by $ threshold), stock adjustment sign-off, write-off dual authorization, and RMA disposition review. UI pending approvals inbox, approval history timeline, and webhook/outbox integration for external approval tools.~~ (Completed)
 
 #### 13. Reporting & Analytics 🟠 P1

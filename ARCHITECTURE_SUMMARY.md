@@ -1,6 +1,6 @@
 # Repository Architecture Summary
 
-This repository contains three independent implementations of an inventory management system, all based on a common set of Domain-Driven Design (DDD) plans. They serve as a comparative study for implementing the same business logic using different technologies and architectural styles.
+This repository contains four independent implementations of an inventory management system, all based on a common set of Domain-Driven Design (DDD) plans. They serve as a comparative study for implementing the same business logic using different technologies and architectural styles.
 
 ## Shared Design
 
@@ -23,5 +23,11 @@ All three projects originate from the same detailed design documents found in th
 *   **Purpose:** A more focused, educational example built with **PHP**.
 *   **Technology:** Uses standard PHP without a full framework, but incorporates standalone components like the Eloquent ORM (from Laravel).
 *   **Architecture:** It provides a very clear example of a hexagonal (or "ports and adapters") architecture, with swappable in-memory and database repository implementations.
+
+## `python-ddd-inventory` (REST & Python)
+
+*   **Purpose:** A high-performance, asynchronous implementation built with **Python**.
+*   **Technology:** Uses FastAPI for the web framework and SQLAlchemy for the ORM, targeting high throughput.
+*   **Architecture:** Follows a layered DDD architecture, similar to the GraphQL implementation, but optimized for Python's async ecosystem.
 
 In short, the repository is a practical exploration of architectural patterns, demonstrating how a single, complex domain can be modeled and built in different ways.
