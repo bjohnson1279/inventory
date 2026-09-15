@@ -13,3 +13,6 @@
 [submodule "inventory-python-sidecar"]
 	path = inventory-python-sidecar
 	url = https://github.com/bjohnson1279/inventory-python-sidecar.git
+[submodule "python-ddd-inventory"]
+	path = python-ddd-inventory
+	url = https://github.com/bjohnson1279/python-ddd-inventory.git
