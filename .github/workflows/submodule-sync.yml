@@ -1,0 +1,36 @@
+name: Submodule Pointer Synchronization
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [submodule-update]
+  schedule:
+    # Run every 6 hours to catch drifted submodule commits
+    - cron: '0 */6 * * *'
+
+jobs:
+  sync-submodules:
+    name: Sync Submodule Pointers to Latest Remote Heads
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Monorepo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Submodules to Latest Remote Commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git submodule update --remote --merge
+
+          if ! git diff --quiet; then
+            echo "Submodule drift detected, committing updates..."
+            git add .
+            git commit -m "chore(submodules): auto-sync submodules to latest remote default branches"
+            git push origin main
+          else
+            echo "All submodules are already synchronized with remote heads."
+          fi
