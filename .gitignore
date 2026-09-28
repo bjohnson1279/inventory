@@ -49,3 +49,6 @@ test.cjs
 fix_*.php
 update_*.php
 scratch_*
+
+__pycache__/
+*.pyc

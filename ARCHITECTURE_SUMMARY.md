@@ -9,13 +9,13 @@ All three projects originate from the same detailed design documents found in th
 ## `gql-ddd-inventory` (GraphQL & TypeScript)
 
 *   **Purpose:** A comprehensive implementation featuring a **GraphQL API**.
-*   **Technology:** Built with TypeScript, Node.js, Express, and Apollo Server. It uses Prisma as its ORM for a PostgreSQL database.
+*   **Technology:** Built with TypeScript, Node.js, Fastify, and Apollo Server. It uses Prisma as its ORM for a PostgreSQL database.
 *   **Architecture:** Follows a layered DDD architecture where the `domain` logic is organized by component type (e.g., entities, services, repositories). It also includes a React-based admin dashboard in the `web/` sub-directory.
 
 ## `js-ddd-inventory` (REST & TypeScript)
 
 *   **Purpose:** An alternative implementation providing a traditional **REST API**.
-*   **Technology:** Also uses TypeScript, Node.js, and Express with Prisma.
+*   **Technology:** Also uses TypeScript, Node.js, and Fastify with Prisma.
 *   **Architecture:** Its key distinction is that its `domain` layer is organized by "bounded contexts" (e.g., `product`, `kit`, `accounting`), which represent different areas of the business. This showcases a different approach to structuring the core logic compared to the GraphQL project.
 
 ## `php-ddd-inventory` (REST & PHP)

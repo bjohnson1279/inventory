@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: inventory_password
       POSTGRES_DB: inventory_db
     ports:
-      - "5434:5432"
+      - "${POSTGRES_PORT:-5034}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./php-ddd-inventory/docker/postgres/init:/docker-entrypoint-initdb.d
@@ -23,7 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-5079}:6379"
     networks:
       - conformance-net
     healthcheck:
@@ -36,7 +36,7 @@ services:
     build:
       context: ./gql-ddd-inventory
     ports:
-      - "4000:4000"
+      - "${GQL_PORT:-5040}:4000"
     environment:
       - DATABASE_URL=postgresql://inventory_user:inventory_password@postgres:5432/inventory_db?schema=public
       - JWT_SECRET=test-jwt-secret
@@ -62,7 +62,7 @@ services:
     build:
       context: ./js-ddd-inventory
     ports:
-      - "5000:5000"
+      - "${EXPRESS_PORT:-5050}:5000"
     environment:
       - DATABASE_URL=postgresql://inventory_user:inventory_password@postgres:5432/inventory_db?schema=public
       - JWT_SECRET=test-jwt-secret
@@ -89,7 +89,7 @@ services:
       context: ./php-ddd-inventory
       dockerfile: docker/php/Dockerfile
     ports:
-      - "8000:8000"
+      - "${PHP_PORT:-5080}:8000"
     environment:
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
@@ -119,7 +119,7 @@ services:
     build:
       context: ./python-ddd-inventory
     ports:
-      - "8001:8000"
+      - "${PYTHON_PORT:-5081}:8000"
     environment:
       - DATABASE_URL=postgresql://inventory_user:inventory_password@postgres:5432/inventory_db
       - JWT_SECRET=test-jwt-secret
