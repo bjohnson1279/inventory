@@ -84,39 +84,39 @@ fully relying on the centralized client remains to be finalized.~~ (Completed)
 
 ---
 
-#### 12. Governance & Access Control 🔴 P0
+#### 12. Governance & Access Control (Completed)
 
 • ~~**Granular Role-Based Access Control (RBAC) & Permission Engine**: Permission matrix (resource × action × scope), predefined role templates (warehouse_operator, inventory_manager, finance_auditor, admin, read_only), JWT claims enrichment with permissions array, middleware/guard decorators across all 4 backends, and a UI role management panel with permission toggles.~~ (Completed)
 • ~~**Configurable Approval Workflows Engine**: Generic workflow engine defining trigger event → approval chain → escalation timeout → execution. Pre-built templates for PO approval (by $ threshold), stock adjustment sign-off, write-off dual authorization, and RMA disposition review. UI pending approvals inbox, approval history timeline, and webhook/outbox integration for external approval tools.~~ (Completed)
 
-#### 13. Reporting & Analytics 🟠 P1
+#### 13. Reporting & Analytics (Completed)
 
-• **Reporting, Saved Views & Export Engine**: Saved report definitions (filters, date range, grouping) stored per-tenant. Scheduled report generation (daily/weekly/monthly) via cron + outbox. Export formats: CSV, PDF (branded templates), Excel (XLSX). Report sharing with expiry and viewer permissions. Dashboard builder for custom KPI widget layouts. *(Completed in js-ddd-inventory)*
+• ~~**Reporting, Saved Views & Export Engine**: Saved report definitions (filters, date range, grouping) stored per-tenant. Scheduled report generation (daily/weekly/monthly) via cron + outbox. Export formats: CSV, PDF (branded templates), Excel (XLSX). Report sharing with expiry and viewer permissions. Dashboard builder for custom KPI widget layouts.~~ *(Completed in js-ddd-inventory, python-ddd-inventory, gql-ddd-inventory & php-ddd-inventory)*
 
-#### 14. Ecosystem & Channel Integrations 🟠 P1
+#### 14. Ecosystem & Channel Integrations (Completed)
 
-• ~~**Omnichannel Sales Integration Framework**: Generalized channel adapter interface (sync_inventory, ingest_orders, push_fulfillment_status). Adapters for Shopify (upgrade from stub), Amazon SP-API, WooCommerce REST, and generic CSV/EDI. Channel-specific inventory allocation pools, centralized order ingestion feeding the existing fulfillment routing engine, and oversell conflict resolution across channels.~~ *(Completed in js-ddd-inventory)*
+• ~~**Omnichannel Sales Integration Framework**: Generalized channel adapter interface (sync_inventory, ingest_orders, push_fulfillment_status). Adapters for Shopify (upgrade from stub), Amazon SP-API, WooCommerce REST, and generic CSV/EDI. Channel-specific inventory allocation pools, centralized order ingestion feeding the existing fulfillment routing engine, and oversell conflict resolution across channels.~~ *(Completed in js-ddd-inventory, python-ddd-inventory, gql-ddd-inventory & php-ddd-inventory)*
 
-#### 15. Operational Depth 🟡 P2
+#### 15. Operational Depth (Completed)
 
-• **Advanced Cycle Count Program Management**: ABC classification-based frequency scheduling, zone/aisle/bin-based count assignments, blind count mode, variance thresholds triggering automatic recounts, count accuracy KPIs per operator/zone/SKU class, and mobile-first count entry extending the existing PWA/offline capability.
-• **Supplier Collaboration Portal & ASN/OTIF Expansion**: Supplier-facing portal with separate auth and tenant scoping, electronic ASN submission with PO matching, PO acknowledgment and ship-date commitment workflows, supplier performance dashboard (OTIF %, lead time variance, defect rate), and recall collaboration tracking.
-• **Notification Center & Alert Management**: Unified notification aggregator across all alert sources (low-stock, anomalies, rebalance, webhook failures), in-app notification bell with categorized inbox, per-user notification preferences (email, in-app, webhook, SMS), snooze/acknowledge/escalate workflows, and notification history with search and filtering.
-• **Inventory Aging & Dead Stock Analysis**: Aging buckets (0–30d, 31–60d, 61–90d, 91–180d, 180d+), dead stock identification (zero-velocity for configurable period), overstock detection vs. projected demand, markdown/liquidation recommendation engine, and integration with ESG module for dead stock waste as Scope 3 emissions.
+• **Advanced Cycle Count Program Management**: ABC classification-based frequency scheduling, zone/aisle/bin-based count assignments, blind count mode, variance thresholds triggering automatic recounts, count accuracy KPIs per operator/zone/SKU class, and mobile-first count entry extending the existing PWA/offline capability. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
+• **Supplier Collaboration Portal & ASN/OTIF Expansion**: Supplier-facing portal with separate auth and tenant scoping, electronic ASN submission with PO matching, PO acknowledgment and ship-date commitment workflows, supplier performance dashboard (OTIF %, lead time variance, defect rate), and recall collaboration tracking. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
+• **Notification Center & Alert Management**: Unified notification aggregator across all alert sources (low-stock, anomalies, rebalance, webhook failures), in-app notification bell with categorized inbox, per-user notification preferences (email, in-app, webhook, SMS), snooze/acknowledge/escalate workflows, and notification history with search and filtering. *(Completed in python-ddd-inventory, gql-ddd-inventory, js-ddd-inventory & php-ddd-inventory)*
+• **Inventory Aging & Dead Stock Analysis**: Aging buckets (0–30d, 31–60d, 61–90d, 91–180d, 180d+), dead stock identification (zero-velocity for configurable period), overstock detection vs. projected demand, markdown/liquidation recommendation engine, and integration with ESG module for dead stock waste as Scope 3 emissions. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
 
-#### 16. Financial & Platform Maturity 🟢 P3
+#### 16. Financial & Platform Maturity (Completed)
 
-• **Intercompany & Multi-Entity Transfer Accounting**: Entity/legal-entity layer above tenant, intercompany transfer pricing rules (cost-plus, market-based), automatic intercompany elimination journal entries, transfer duty/tariff recording for cross-border movements, and consolidation reports across entities.
-• **API Rate Limiting, Usage Metering & Tenant Billing Hooks**: Per-tenant rate limiting (sliding window, token bucket), API usage metering (requests/day, storage, active SKUs, active locations), usage dashboard per tenant, billing event hooks (outbox events for Stripe/billing system ingestion), and configurable tier limits.
+• **Intercompany & Multi-Entity Transfer Accounting**: Entity/legal-entity layer above tenant, intercompany transfer pricing rules (cost-plus, market-based), automatic intercompany elimination journal entries, transfer duty/tariff recording for cross-border movements, and consolidation reports across entities. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
+• **API Rate Limiting, Usage Metering & Tenant Billing Hooks**: Per-tenant rate limiting (sliding window, token bucket), API usage metering (requests/day, storage, active SKUs, active locations), usage dashboard per tenant, billing event hooks (outbox events for Stripe/billing system ingestion), and configurable tier limits. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
 
-#### 17. Computer Vision & Automated QA 🟣 P4
+#### 17. Computer Vision & Automated QA (Completed)
 
-• **Computer Vision Receiving & QA Gateway**: Extension of the Python AI/FastAPI sidecar utilizing OpenCV and lightweight vision models (e.g., YOLO) at inbound docks. Features include automated volumetric dimensioning (L×W×H), OCR for recovering damaged/smudged supplier barcodes, and visual anomaly detection for damaged packaging prior to ledger entry.
+• **Computer Vision Receiving & QA Gateway**: Extension of the Python AI/FastAPI sidecar utilizing OpenCV and lightweight vision models (e.g., YOLO) at inbound docks. Features include automated volumetric dimensioning (L×W×H), OCR for recovering damaged/smudged supplier barcodes, and visual anomaly detection for damaged packaging prior to ledger entry. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
 
-#### 18. Yield Management & Dynamic Pricing 🟣 P4
+#### 18. Yield Management & Dynamic Pricing (Completed)
 
-• **Dynamic Pricing & Algorithmic Liquidation Engine**: Automated yield-management module that calculates holding costs vs. historical demand. Integrates with FEFO lot expiration proximity to automatically push progressive pricing markdowns via Omnichannel adapters (Shopify/Amazon) to maximize capital recovery on aging stock.
+• **Dynamic Pricing & Algorithmic Liquidation Engine**: Automated yield-management module that calculates holding costs vs. historical demand. Integrates with FEFO lot expiration proximity to automatically push progressive pricing markdowns via Omnichannel adapters (Shopify/Amazon) to maximize capital recovery on aging stock. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
 
-#### 19. Workforce & Labor Management 🟣 P4
+#### 19. Workforce & Labor Management (Completed)
 
-• **Labor Management System (LMS) & Predictive Scheduling**: Tracks warehouse operator KPIs (picks/hour, cycle count accuracy, traversal distance). Correlates with the Machine Learning Demand Forecasting engine to generate predictive labor schedules, preventing understaffing during peak inbound/outbound waves. Includes a gamified UI dashboard for operator engagement.
+• **Labor Management System (LMS) & Predictive Scheduling**: Tracks warehouse operator KPIs (picks/hour, cycle count accuracy, traversal distance). Correlates with the Machine Learning Demand Forecasting engine to generate predictive labor schedules, preventing understaffing during peak inbound/outbound waves. Includes a gamified UI dashboard for operator engagement. *(Completed in python-ddd-inventory, gql-ddd-inventory, php-ddd-inventory & js-ddd-inventory)*
