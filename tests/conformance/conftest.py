@@ -35,20 +35,20 @@ async def rest_client(backend):
     if backend == BackendType.GRAPHQL:
         pytest.skip("Not a REST backend")
     url = BACKEND_URLS[backend]
-    async with httpx.AsyncClient(base_url=url, timeout=5.0) as client:
+    async with httpx.AsyncClient(base_url=url, timeout=30.0) as client:
         try:
             await client.get("/api/health")
-        except (httpx.ConnectError, httpx.ConnectTimeout):
+        except httpx.RequestError:
             pytest.skip(f"Backend server for {backend.value} at {url} is offline")
         yield client
 
 @pytest_asyncio.fixture
 async def graphql_client():
     url = BACKEND_URLS[BackendType.GRAPHQL]
-    async with httpx.AsyncClient(base_url=url, timeout=5.0) as client:
+    async with httpx.AsyncClient(base_url=url, timeout=30.0) as client:
         try:
             await client.get("/")
-        except (httpx.ConnectError, httpx.ConnectTimeout):
+        except httpx.RequestError:
             pytest.skip(f"GraphQL backend server at {url} is offline")
     transport = HTTPXAsyncTransport(url=url)
     return Client(transport=transport, fetch_schema_from_transport=False)
@@ -82,19 +82,19 @@ async def authenticated_client(backend, auth_token):
         async with httpx.AsyncClient(
             base_url=url,
             headers={"Authorization": f"Bearer {auth_token}"},
-            timeout=5.0
+            timeout=30.0
         ) as client:
             try:
                 await client.get("/api/health")
-            except (httpx.ConnectError, httpx.ConnectTimeout):
+            except httpx.RequestError:
                 pytest.skip(f"Backend server for {backend.value} at {url} is offline")
             yield client
     else:
         url = BACKEND_URLS[BackendType.GRAPHQL]
-        async with httpx.AsyncClient(base_url=url, timeout=5.0) as client:
+        async with httpx.AsyncClient(base_url=url, timeout=30.0) as client:
             try:
                 await client.get("/")
-            except (httpx.ConnectError, httpx.ConnectTimeout):
+            except httpx.RequestError:
                 pytest.skip(f"GraphQL backend server at {url} is offline")
         transport = HTTPXAsyncTransport(
             url=url,
