@@ -71,7 +71,7 @@
 - **Coupled Test Fixture Awareness for Security Invariants**: When changing fail-open fallback behavior (such as hardening decryption to fail closed), always update upstream test mocks that rely on plaintext credentials or mock values.
 
 - **Centralize Shared Test Doubles for Abstract Domain Repositories**: When mocking domain repositories across multiple test suites, define a single shared test double rather than duplicating inline mocks to prevent cross-suite synchronization bugs.
-\n\n## Important Process Rules\n- **Do NOT perform whole-file code formatting.** Only apply necessary changes specifically related to the task. Formatting existing, untouched code creates massive PR diffs that are hard to review.\n- **Only write your journal to your matching file (`.jules/bolt.md`).** Do not edit or create journal files for other personas.\n\n\n## Important Process Rules\n- **Only write your journal to your matching file (`.jules/bolt.md`).** Do not edit or create journal files for other personas.\n
+
 
 
 ## 2026-10-07 - PSR-4 Standards, Sibling Target Partitioning & Method Contract Verifications
@@ -83,3 +83,16 @@
 - **Strict PSR-4 Compliance in PHP**: In PHP codebases, place every class, interface, and enum in its own file named exactly `<ClassName>.php` matching its namespace path.
 - **Sibling Target Partitioning**: Before starting work on a file, inspect `git branch -r`. Avoid selecting files already modified in open PRs or active branches to prevent redundant sibling collisions.
 - **Contract Signature Verification**: Always inspect entity definitions to confirm method and property names before writing service logic or test fixtures.
+
+## 2026-10-07 - Process Streamlining, Sibling Coalescence & Autoloading Invariants
+**Learning:**
+1. Fragmenting stub methods across multiple micro-PRs on the same class (e.g. four PRs for RoleController) causes unavoidable sibling merge collisions and wasted CI cycles.
+2. Placing multiple domain services into a single file breaks Composer PSR-4 autoloader discovery in PHP, triggering fatal Class not found errors.
+3. Writing service calls against unverified entity methods (e.g. calling getItems() instead of checking lines) causes fatal runtime errors.
+4. String-escaping markdown journal updates (\\n\\n) corrupts rendered formatting.
+
+**Action:**
+- **Coalesce Micro-PRs**: When implementing or scaffolding related controller endpoints, stub methods, or repository queries on a single class, consolidate all changes into a single coherent pull request. Never create separate fragmented PRs for each individual method of the same class.
+- **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named <ClassName>.php matching its namespace path. Never combine multiple domain classes into a single file.
+- **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
+- **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
