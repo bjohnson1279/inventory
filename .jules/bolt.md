@@ -71,3 +71,15 @@
 - **Coupled Test Fixture Awareness for Security Invariants**: When changing fail-open fallback behavior (such as hardening decryption to fail closed), always update upstream test mocks that rely on plaintext credentials or mock values.
 
 - **Centralize Shared Test Doubles for Abstract Domain Repositories**: When mocking domain repositories across multiple test suites, define a single shared test double rather than duplicating inline mocks to prevent cross-suite synchronization bugs.
+\n\n## Important Process Rules\n- **Do NOT perform whole-file code formatting.** Only apply necessary changes specifically related to the task. Formatting existing, untouched code creates massive PR diffs that are hard to review.\n- **Only write your journal to your matching file (`.jules/bolt.md`).** Do not edit or create journal files for other personas.\n\n\n## Important Process Rules\n- **Only write your journal to your matching file (`.jules/bolt.md`).** Do not edit or create journal files for other personas.\n
+
+
+## 2026-10-07 - PSR-4 Standards, Sibling Target Partitioning & Method Contract Verifications
+**Learning:**
+1. Grouping multiple classes or enums into single `*Services.php` or `*Entities.php` files breaks PSR-4 autoloader discovery in PHP, causing unit test suites to fail with `Class not found`.
+2. Concurrently generating multiple PRs against the same domain files produces painful merge conflicts and superseded PR waste.
+3. Invoking entity methods without verifying exact signatures (e.g. calling `getItems()` instead of `getLines()`) causes fatal runtime errors.
+**Action:**
+- **Strict PSR-4 Compliance in PHP**: In PHP codebases, place every class, interface, and enum in its own file named exactly `<ClassName>.php` matching its namespace path.
+- **Sibling Target Partitioning**: Before starting work on a file, inspect `git branch -r`. Avoid selecting files already modified in open PRs or active branches to prevent redundant sibling collisions.
+- **Contract Signature Verification**: Always inspect entity definitions to confirm method and property names before writing service logic or test fixtures.
