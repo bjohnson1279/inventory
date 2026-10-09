@@ -187,6 +187,7 @@ jobs:
         working-directory: ${{ matrix.backend }}
         run: |
           composer install --prefer-dist --no-progress
+          composer dump-autoload --strict --optimize
           vendor/bin/phpunit
 
       - name: Setup Python (for Python Tests)

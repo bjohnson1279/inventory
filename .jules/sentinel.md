@@ -95,3 +95,13 @@
 - **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named <ClassName>.php matching its namespace path. Never combine multiple domain classes into a single file.
 - **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
+
+## 2026-10-09 - Benchmark Quarantine, Coupled Test Doubles & Sibling Splicing
+**Learning:**
+1. Placing standalone performance benchmark scripts (`*Benchmark.php`) inside `tests/` directories triggers fatal PHPUnit discovery failures unless they extend `TestCase`.
+2. Refactoring repository access from sequential operations (`save()`) to bulk operations (`upsert()`, `saveAll()`) breaks unit tests if repository test doubles in `tests/Doubles/` are not updated concurrently.
+3. Multiple bot tasks opening sibling PRs on the same endpoint creates avoidable merge conflicts that require manual supersession triage.
+**Action:**
+- **Benchmark Script Quarantine**: Never commit unasserted benchmark scripts into `tests/`. Benchmark metrics belong in the PR description markdown body, not in the production test directory.
+- **Coupled Test Double Synchronization**: Whenever domain services are refactored to use batched methods (`saveAll`, `upsert`), immediately update the shared test double in `tests/Doubles/` to prevent Mockery contract failures.
+- **Micro-PR Coalescence**: Group related controller or service modifications into a single coherent PR rather than opening single-method micro-PRs.
