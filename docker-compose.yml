@@ -1,0 +1,255 @@
+services:
+  # ============================================================================
+  # Infrastructure: PostgreSQL with TimescaleDB & Initial Schema
+  # ============================================================================
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: inventory-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-inventory_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventory_password}
+      POSTGRES_DB: ${POSTGRES_DB:-inventory_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./php-ddd-inventory/docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-inventory_user} -d ${POSTGRES_DB:-inventory_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================================================
+  # Infrastructure: Redis Cache & Distributed Lock Broker
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: inventory-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # AI Microservice: Python FastAPI Sidecar (3D Slotting & ML Shrinkage)
+  # ============================================================================
+  python-sidecar:
+    build:
+      context: ./inventory-python-sidecar
+      dockerfile: Dockerfile
+    container_name: inventory-python-sidecar
+    restart: unless-stopped
+    ports:
+      - "${SIDECAR_PORT:-5005}:5000"
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ============================================================================
+  # Backend 1: GraphQL / TypeScript (Apollo Server 4 + Prisma)
+  # ============================================================================
+  gql-backend:
+    build:
+      context: ./gql-ddd-inventory
+      dockerfile: Dockerfile
+    container_name: inventory-gql-backend
+    restart: unless-stopped
+    ports:
+      - "${GQL_PORT:-4000}:4000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-inventory_user}:${POSTGRES_PASSWORD:-inventory_password}@postgres:5432/${POSTGRES_DB:-inventory_db}?schema=public
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-inventory_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-inventory_password}
+      - DB_NAME=${POSTGRES_DB:-inventory_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=4000
+      - JWT_SECRET=${JWT_SECRET:-test-jwt-secret}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET:-test-shopify-secret}
+      - PYTHON_SIDECAR_URL=http://python-sidecar:5000
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3005,http://localhost:3080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      python-sidecar:
+        condition: service_healthy
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\" || curl -f http://localhost:4000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ============================================================================
+  # Backend 2: Express / Fastify / TypeScript REST (Prisma ORM)
+  # ============================================================================
+  express-backend:
+    build:
+      context: ./js-ddd-inventory
+      dockerfile: Dockerfile
+    container_name: inventory-express-backend
+    restart: unless-stopped
+    ports:
+      - "${EXPRESS_PORT:-5000}:5000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-inventory_user}:${POSTGRES_PASSWORD:-inventory_password}@postgres:5432/${POSTGRES_DB:-inventory_db}?schema=public
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-inventory_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-inventory_password}
+      - DB_NAME=${POSTGRES_DB:-inventory_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=5000
+      - JWT_SECRET=${JWT_SECRET:-test-jwt-secret}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET:-test-shopify-secret}
+      - PYTHON_SIDECAR_URL=http://python-sidecar:5000
+      - DISABLE_WORKERS=true
+      - FRONTEND_URL=http://localhost:3000,http://localhost:3005,http://localhost:3080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      python-sidecar:
+        condition: service_healthy
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:5000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\" || curl -f http://localhost:5000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ============================================================================
+  # Backend 3: PHP 8.2 Hexagonal REST (Eloquent ORM + TimescaleDB)
+  # ============================================================================
+  php-backend:
+    build:
+      context: ./php-ddd-inventory
+      dockerfile: docker/php/Dockerfile
+    container_name: inventory-php-backend
+    restart: unless-stopped
+    ports:
+      - "${PHP_PORT:-8000}:8000"
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${POSTGRES_DB:-inventory_db}
+      - DB_USERNAME=${POSTGRES_USER:-inventory_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-inventory_password}
+      - JWT_SECRET=${JWT_SECRET:-test-jwt-secret}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET:-test-shopify-secret}
+      - PYTHON_SIDECAR_URL=http://python-sidecar:5000
+    volumes:
+      - ./php-ddd-inventory:/var/www/html
+    command: >
+      sh -c "composer install --no-interaction && php -S 0.0.0.0:8000 -t public"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      python-sidecar:
+        condition: service_healthy
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ============================================================================
+  # Backend 4: Python FastAPI REST (SQLAlchemy Async + Layered DDD)
+  # ============================================================================
+  python-backend:
+    build:
+      context: ./python-ddd-inventory
+      dockerfile: Dockerfile
+    container_name: inventory-python-backend
+    restart: unless-stopped
+    ports:
+      - "${PYTHON_PORT:-8001}:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-inventory_user}:${POSTGRES_PASSWORD:-inventory_password}@postgres:5432/${POSTGRES_DB:-inventory_db}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-inventory_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-inventory_password}
+      - DB_NAME=${POSTGRES_DB:-inventory_db}
+      - JWT_SECRET=${JWT_SECRET:-test-jwt-secret}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET:-test-shopify-secret}
+      - PYTHON_SIDECAR_URL=http://python-sidecar:5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      python-sidecar:
+        condition: service_healthy
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ============================================================================
+  # Frontend: React 19 Single Page Application (Vite + Nginx)
+  # ============================================================================
+  react-client:
+    build:
+      context: ./react-ddd-inventory-client
+      dockerfile: Dockerfile
+    container_name: inventory-react-client
+    restart: unless-stopped
+    ports:
+      - "${CLIENT_PORT:-3000}:80"
+    depends_on:
+      gql-backend:
+        condition: service_healthy
+      express-backend:
+        condition: service_healthy
+      php-backend:
+        condition: service_healthy
+      python-backend:
+        condition: service_healthy
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+networks:
+  inventory-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -64,6 +64,32 @@ If you already cloned without `--recursive`, initialize and pull the submodules:
 git submodule update --init --recursive
 ```
 
+### 2. Boot Full Multi-Backend Stack via Docker Compose
+
+To build and start all 8 containers simultaneously (4 Backends, React Frontend, Python Sidecar, PostgreSQL, and Redis):
+
+```bash
+docker compose up -d --build
+```
+
+#### Service Endpoints & Port Map
+
+| Container | Service / Architecture | Host Port | In-Container Port | Healthcheck Endpoint |
+| :--- | :--- | :--- | :--- | :--- |
+| **`inventory-react-client`** | React 19 Frontend SPA (Nginx) | `http://localhost:3000` | `80` | `GET /` |
+| **`inventory-gql-backend`** | GraphQL TypeScript (Apollo Server) | `http://localhost:4000` | `4000` | `GET /health` |
+| **`inventory-express-backend`** | Express / Fastify TypeScript REST | `http://localhost:5000` | `5000` | `GET /health` |
+| **`inventory-php-backend`** | PHP 8.2 Hexagonal REST (TimescaleDB) | `http://localhost:8000` | `8000` | `GET /health` |
+| **`inventory-python-backend`** | Python 3.11 FastAPI REST | `http://localhost:8001` | `8000` | `GET /health` |
+| **`inventory-python-sidecar`** | Python AI/FastAPI (3D Slotting) | `http://localhost:5005` | `5000` | `GET /health` |
+| **`inventory-postgres`** | TimescaleDB / PostgreSQL 16 | `localhost:5432` | `5432` | `pg_isready` |
+| **`inventory-redis`** | Redis 7 Cache & Broker | `localhost:6379` | `6379` | `redis-cli ping` |
+
+To stop all containers:
+```bash
+docker compose down
+```
+
 ---
 
 ## 🧪 Cross-Backend Conformance Test Suite

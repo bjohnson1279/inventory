@@ -1,3 +1,4 @@
+/.env
 # Temporary & log files
 open_prs*.json
 audited_prs*.json
