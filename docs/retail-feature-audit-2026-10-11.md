@@ -7,7 +7,8 @@ authenticated catalog/stock workflows, costing/valuation, and tenant/security
 controls. See [identity/catalog progress](../python-ddd-inventory/IDENTITY_CATALOG.md),
 [costing](../python-ddd-inventory/COSTING.md) and
 [security coverage](../python-ddd-inventory/SECURITY.md). Count ownership and line
-persistence are improved, but stock reconciliation, procurement, transfers,
+persistence and reviewed stock reconciliation are implemented; see
+[physical counts and adjustments](../python-ddd-inventory/COUNTS.md). Procurement, transfers,
 serials, financial journals and durable integrations/reports remain unfinished.
 
 ## Assessment
