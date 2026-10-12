@@ -10,7 +10,9 @@ controls. See [identity/catalog progress](../python-ddd-inventory/IDENTITY_CATAL
 persistence and reviewed stock reconciliation are implemented; see
 [physical counts and adjustments](../python-ddd-inventory/COUNTS.md). Procurement
 and replenishment are also implemented; see
-[procurement progress](../python-ddd-inventory/PROCUREMENT.md). Transfers,
+[procurement progress](../python-ddd-inventory/PROCUREMENT.md). Customer/supplier
+returns, quarantine decisions and inventory write-offs are implemented; see
+[returns progress](../python-ddd-inventory/RETURNS.md). Transfers,
 serials, financial journals and durable integrations/reports remain unfinished.
 
 ## Assessment
