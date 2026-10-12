@@ -21,7 +21,10 @@ and quantity kits are now implemented; see
 [serials and kits](../python-ddd-inventory/SERIALS_KITS.md). Financial journals,
 commercial settlements/credits/refunds and ledger reporting are now implemented;
 see [financial accounting](../python-ddd-inventory/FINANCIAL_ACCOUNTING.md).
-Downstream integration consumers and durable report jobs remain unfinished. Native PO packaging
+Signed store-order reservations/fulfillment and acknowledged inventory/journal
+connector deliveries are now implemented; see
+[integrations](../python-ddd-inventory/INTEGRATIONS.md). Native provider adapters,
+external reconciliation and durable report jobs remain unfinished. Native PO packaging
 and dedicated transfer/UOM screens remain follow-up work.
 
 ## Assessment
