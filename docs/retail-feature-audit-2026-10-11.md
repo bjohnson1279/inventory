@@ -12,8 +12,11 @@ persistence and reviewed stock reconciliation are implemented; see
 and replenishment are also implemented; see
 [procurement progress](../python-ddd-inventory/PROCUREMENT.md). Customer/supplier
 returns, quarantine decisions and inventory write-offs are implemented; see
-[returns progress](../python-ddd-inventory/RETURNS.md). Transfers,
-serials, financial journals and durable integrations/reports remain unfinished.
+[returns progress](../python-ddd-inventory/RETURNS.md). Internal transfers and
+named-unit stock conversions are now implemented; see
+[transfers and units](../python-ddd-inventory/TRANSFERS_UOM.md). Serials, financial
+journals and durable integrations/reports remain unfinished. Native PO packaging
+and dedicated transfer/UOM screens remain follow-up work.
 
 ## Assessment
 
