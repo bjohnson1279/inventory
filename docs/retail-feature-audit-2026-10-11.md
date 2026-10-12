@@ -8,7 +8,9 @@ controls. See [identity/catalog progress](../python-ddd-inventory/IDENTITY_CATAL
 [costing](../python-ddd-inventory/COSTING.md) and
 [security coverage](../python-ddd-inventory/SECURITY.md). Count ownership and line
 persistence and reviewed stock reconciliation are implemented; see
-[physical counts and adjustments](../python-ddd-inventory/COUNTS.md). Procurement, transfers,
+[physical counts and adjustments](../python-ddd-inventory/COUNTS.md). Procurement
+and replenishment are also implemented; see
+[procurement progress](../python-ddd-inventory/PROCUREMENT.md). Transfers,
 serials, financial journals and durable integrations/reports remain unfinished.
 
 ## Assessment
