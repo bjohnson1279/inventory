@@ -19,7 +19,9 @@ delivery, tenant-scoped leased retries and dead-letter recovery are now implemen
 see [event delivery](../python-ddd-inventory/EVENT_DELIVERY.md). Serial lifecycles
 and quantity kits are now implemented; see
 [serials and kits](../python-ddd-inventory/SERIALS_KITS.md). Financial journals,
-downstream integration consumers and durable report jobs remain unfinished. Native PO packaging
+commercial settlements/credits/refunds and ledger reporting are now implemented;
+see [financial accounting](../python-ddd-inventory/FINANCIAL_ACCOUNTING.md).
+Downstream integration consumers and durable report jobs remain unfinished. Native PO packaging
 and dedicated transfer/UOM screens remain follow-up work.
 
 ## Assessment
