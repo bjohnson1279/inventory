@@ -14,8 +14,10 @@ and replenishment are also implemented; see
 returns, quarantine decisions and inventory write-offs are implemented; see
 [returns progress](../python-ddd-inventory/RETURNS.md). Internal transfers and
 named-unit stock conversions are now implemented; see
-[transfers and units](../python-ddd-inventory/TRANSFERS_UOM.md). Serials, financial
-journals and durable integrations/reports remain unfinished. Native PO packaging
+[transfers and units](../python-ddd-inventory/TRANSFERS_UOM.md). Acknowledged Kafka
+delivery, tenant-scoped leased retries and dead-letter recovery are now implemented;
+see [event delivery](../python-ddd-inventory/EVENT_DELIVERY.md). Serials, financial
+journals, downstream integration consumers and durable report jobs remain unfinished. Native PO packaging
 and dedicated transfer/UOM screens remain follow-up work.
 
 ## Assessment
