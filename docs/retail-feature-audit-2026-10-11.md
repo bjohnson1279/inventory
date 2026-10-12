@@ -2,6 +2,14 @@
 
 Date: 2026-10-11. Scope: current local checkout of GraphQL TypeScript, REST TypeScript, PHP REST, Python FastAPI, shared React client, and parent conformance/CI configuration. This is a source and targeted-test evaluation, not a production certification or a measured whole-repository coverage report. No application implementation was changed.
 
+This is the original audit snapshot. Subsequent Python work has implemented
+authenticated catalog/stock workflows, costing/valuation, and tenant/security
+controls. See [identity/catalog progress](../python-ddd-inventory/IDENTITY_CATALOG.md),
+[costing](../python-ddd-inventory/COSTING.md) and
+[security coverage](../python-ddd-inventory/SECURITY.md). Count ownership and line
+persistence are improved, but stock reconciliation, procurement, transfers,
+serials, financial journals and durable integrations/reports remain unfinished.
+
 ## Assessment
 
 The application has substantial inventory-domain breadth, especially in the TypeScript and PHP implementations. It is not yet supported by credible evidence of four-backend behavioral parity. Several features with immediate retail value—physical counts, aging, reliable notifications, and complete Python workflows—are unfinished at the API/persistence boundary. Stock transaction consistency and tenant isolation deserve attention before additional advanced automation.
