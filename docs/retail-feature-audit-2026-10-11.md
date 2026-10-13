@@ -23,8 +23,12 @@ commercial settlements/credits/refunds and ledger reporting are now implemented;
 see [financial accounting](../python-ddd-inventory/FINANCIAL_ACCOUNTING.md).
 Signed store-order reservations/fulfillment and acknowledged inventory/journal
 connector deliveries are now implemented; see
-[integrations](../python-ddd-inventory/INTEGRATIONS.md). Native provider adapters,
-external reconciliation and durable report jobs remain unfinished. Native PO packaging
+[integrations](../python-ddd-inventory/INTEGRATIONS.md). Durable report snapshots,
+private JSON/CSV exports, UTC schedules, remaining-stock aging and active
+low-stock/expiry alerts are now implemented; see
+[reporting and alerts](../python-ddd-inventory/REPORTING_ALERTS.md). Native provider
+adapters, external reconciliation, email/PDF exports and public sharing remain
+unfinished. Native PO packaging
 and dedicated transfer/UOM screens remain follow-up work.
 
 ## Assessment
