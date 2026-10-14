@@ -66,13 +66,20 @@ class Identity:
     token: str = field(repr=False)
     seeded: bool = False
 
+def validate_credentials(seed=False, environment=None):
+    env = os.environ if environment is None else environment
+    password = env.get('CONFORMANCE_ADMIN_PASSWORD')
+    if not password or len(password) < 8:
+        raise HarnessError('Set CONFORMANCE_ADMIN_PASSWORD to a test-account password of at least 8 characters; --seed still requires a password')
+    if not seed and not env.get('CONFORMANCE_TENANT_ID', '').strip():
+        raise HarnessError('Set CONFORMANCE_TENANT_ID for an existing-tenant run, or use --seed to create unique test tenants')
+
 def bootstrap(client, backend, url, run_id, seed=False):
+    validate_credentials(seed)
     check_health(client, backend, url)
     tenant = f'conformance-{run_id}-{backend.value}' if seed else os.getenv('CONFORMANCE_TENANT_ID')
     email = os.getenv('CONFORMANCE_ADMIN_EMAIL', 'admin@conformance.example')
     password = os.getenv('CONFORMANCE_ADMIN_PASSWORD')
-    if not tenant or not password or len(password) < 8:
-        raise HarnessError('Provide CONFORMANCE_ADMIN_PASSWORD (8+ chars) and CONFORMANCE_TENANT_ID unless --seed is used')
     try:
         if seed:
             payload = {'orgName': 'Conformance Test', 'tenantId': tenant, 'adminName': 'Conformance Admin',

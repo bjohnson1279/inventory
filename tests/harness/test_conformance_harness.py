@@ -104,6 +104,8 @@ def test_full_manifest_accounts_for_every_declared_scenario():
     assert len(runner.required_scenarios('smoke')) == 3
 
 def test_runner_rejects_subprocess_failure_and_removes_stale_report(tmp_path, monkeypatch):
+    monkeypatch.setenv('CONFORMANCE_ADMIN_PASSWORD', 'unit-test-password')
+    monkeypatch.setenv('CONFORMANCE_TENANT_ID', 'test-store')
     path = tmp_path/'conformance-report.json'
     path.write_text(json.dumps(report()))
     def failed(command, **kwargs):
@@ -112,6 +114,29 @@ def test_runner_rejects_subprocess_failure_and_removes_stale_report(tmp_path, mo
         return subprocess.CompletedProcess(command, 3)
     monkeypatch.setattr(runner.subprocess, 'run', failed)
     assert runner.main(['--skip-health-check','--report-dir',str(tmp_path)]) == 3
+
+@pytest.mark.parametrize('seed,password,tenant,missing', [(True,None,None,'CONFORMANCE_ADMIN_PASSWORD'),
+    (True,'short',None,'CONFORMANCE_ADMIN_PASSWORD'), (False,'unit-test-password',None,'CONFORMANCE_TENANT_ID')])
+def test_runner_reports_missing_credentials_once_before_network_or_pytest(tmp_path, monkeypatch, capsys, seed, password, tenant, missing):
+    from unittest.mock import Mock
+    monkeypatch.delenv('CONFORMANCE_ADMIN_PASSWORD', raising=False)
+    monkeypatch.delenv('CONFORMANCE_TENANT_ID', raising=False)
+    if password is not None: monkeypatch.setenv('CONFORMANCE_ADMIN_PASSWORD', password)
+    if tenant is not None: monkeypatch.setenv('CONFORMANCE_TENANT_ID', tenant)
+    health, subprocess_run = Mock(), Mock()
+    monkeypatch.setattr(runner, 'wait_for_backends', health)
+    monkeypatch.setattr(runner.subprocess, 'run', subprocess_run)
+    args = ['--suite','smoke','--report-dir',str(tmp_path)] + (['--seed'] if seed else [])
+    assert runner.main(args) == 1
+    output = capsys.readouterr().err
+    assert output.count('Conformance FAILED:') == 1 and missing in output
+    assert password is None or password not in output
+    health.assert_not_called()
+    subprocess_run.assert_not_called()
+
+def test_seed_password_does_not_require_existing_tenant_id():
+    from scripts.conformance_runtime import validate_credentials
+    validate_credentials(True, {'CONFORMANCE_ADMIN_PASSWORD':'unit-test-password'})
 
 @pytest.fixture
 def protocol_servers(monkeypatch):

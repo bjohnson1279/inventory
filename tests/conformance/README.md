@@ -25,9 +25,14 @@ Existing-tenant runs omit `--seed` and require `CONFORMANCE_TENANT_ID`. Bootstra
 honors PHP's `/api/setup` route and snake-case login field, and GraphQL variables.
 
 ```powershell
+$env:CONFORMANCE_ADMIN_PASSWORD = 'conformance-test-password'
 python scripts/run_conformance.py --seed --suite smoke
 python scripts/run_conformance.py --seed --suite full
 ```
+
+Run these in the same PowerShell session. `--seed` replaces the existing-tenant
+ID requirement, not the password requirement. Missing/short passwords now fail
+once during runner preflight, before network polling or pytest fixture setup.
 
 Smoke runs three mandatory scenarios on all four backends: genuine healthy JSON,
 authenticated access to the seeded administrator, and denial of unauthenticated

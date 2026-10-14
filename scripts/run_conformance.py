@@ -11,9 +11,9 @@ import uuid
 from collections import Counter
 import httpx
 try:
-    from scripts.conformance_runtime import BACKENDS, backend_urls, check_health, HarnessError
+    from scripts.conformance_runtime import BACKENDS, backend_urls, check_health, validate_credentials, HarnessError
 except ModuleNotFoundError:
-    from conformance_runtime import BACKENDS, backend_urls, check_health, HarnessError
+    from conformance_runtime import BACKENDS, backend_urls, check_health, validate_credentials, HarnessError
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -98,6 +98,7 @@ def main(argv=None):
     env['PYTHONPATH'] = str(ROOT)+os.pathsep+env.get('PYTHONPATH', '')
     failure_code = 1
     try:
+        validate_credentials(args.seed, env)
         if not args.skip_health_check:
             wait_for_backends()
         target = 'tests/conformance/test_harness_smoke.py' if args.suite == 'smoke' else 'tests/conformance'
