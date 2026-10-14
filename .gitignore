@@ -23,6 +23,8 @@ test.js
 test_*.ts
 test_*.js
 test_*.py
+!tests/**/test_*.py
+!scripts/test_*.py
 *.scratch
 scratch/
 
@@ -58,6 +60,8 @@ scratch_*
 
 __pycache__/
 *.pyc
+.pytest_cache/
+conformance-report/*.json
 
 fix_*.cjs
 patch_*.py

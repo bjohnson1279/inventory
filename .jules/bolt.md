@@ -90,3 +90,11 @@
 - **Benchmark Script Quarantine**: Never commit unasserted benchmark scripts into `tests/`. Benchmark metrics belong in the PR description markdown body, not in the production test directory.
 - **Coupled Test Double Synchronization**: Whenever domain services are refactored to use batched methods (`saveAll`, `upsert`), immediately update the shared test double in `tests/Doubles/` to prevent Mockery contract failures.
 - **Micro-PR Coalescence**: Group related controller or service modifications into a single coherent PR rather than opening single-method micro-PRs.
+
+## 2026-10-13 - Pre-Flight PR Deduplication & Coalesced Domain Type Hardening
+**Learning:**
+1. Multiple concurrent bot tasks opened competing pull requests for the same target component (e.g. PRs #372 & #378 both adding test suites for PredictiveScheduling; PRs #375 & #376 both adding test suites for SupplierCollaborationPortal). This resulted in wasted CI test runner time and required manual supersession closures.
+2. Generating 8 distinct micro-PRs for trivial 1-line TypeScript interface additions or unused variable removals in the React client flooded the repository's open PR queue and triggered separate heavy Playwright E2E pipeline runs for every single file.
+**Action:**
+- **Pre-Flight Open PR Deduplication**: Before opening a new pull request for a component, endpoint, or test suite, execute `gh pr list --state open` or check remote branch heads. If an open PR already covers the target or component, update the existing branch rather than opening a competing PR.
+- **Bounded-Context Coalescence**: Consolidate related type definitions, interface contracts, and dead code cleanup across a bounded context into a single cohesive pull request.

@@ -1,136 +1,92 @@
+"""Real bootstrap, independent REST/GraphQL clients and attributable reports."""
+import ast
+import inspect
 import os
+import textwrap
+import uuid
 import pytest
 import pytest_asyncio
-from enum import Enum
 import httpx
-from gql import Client, gql
+from gql import Client
 from gql.transport.httpx import HTTPXAsyncTransport
-from typing import Dict, Any, Optional
+from scripts.conformance_runtime import BackendType, BACKENDS, backend_urls, bootstrap, HarnessError
 
-# BackendType enumeration - used by conformance tests to parameterize backend selection
-from enum import Enum
+BACKEND_URLS = backend_urls()
 
-class BackendType(Enum):
-    EXPRESS_PRISMA = 'express-prisma'
-    GRAPHQL_PRISMA = 'gql-ddd-inventory'  # Prisma GraphQL serverless / Next.js
-    PHP_LARAVEL = 'php-laravel'
-    GRAPHQL = "GRAPHQL"
-    EXPRESS_REST = "EXPRESS_REST"
-    PHP_REST = "PHP_REST"
-    PYTHON_REST = "PYTHON_REST"
-
-BACKEND_URLS = {
-    BackendType.GRAPHQL: os.getenv("GRAPHQL_URL", "http://localhost:4000"),
-    BackendType.EXPRESS_REST: os.getenv("EXPRESS_REST_URL", "http://localhost:5000"),
-    BackendType.PHP_REST: os.getenv("PHP_REST_URL", "http://localhost:8000"),
-    BackendType.PYTHON_REST: os.getenv("PYTHON_REST_URL", "http://localhost:8001")
-}
-
-@pytest.fixture(params=[BackendType.GRAPHQL, BackendType.EXPRESS_REST, BackendType.PHP_REST, BackendType.PYTHON_REST])
+@pytest.fixture(scope='session', params=BACKENDS, ids=lambda b: b.value)
 def backend(request):
     return request.param
 
-@pytest_asyncio.fixture
-async def rest_client(backend):
-    if backend == BackendType.GRAPHQL:
-        pytest.skip("Not a REST backend")
-    url = BACKEND_URLS[backend]
-    async with httpx.AsyncClient(base_url=url, timeout=30.0) as client:
-        try:
-            await client.get("/api/health")
-        except httpx.RequestError:
-            pytest.skip(f"Backend server for {backend.value} at {url} is offline")
-        yield client
+@pytest.fixture(scope='session')
+def run_id():
+    return os.getenv('CONFORMANCE_RUN_ID') or uuid.uuid4().hex
 
-@pytest_asyncio.fixture
-async def graphql_client():
-    url = BACKEND_URLS[BackendType.GRAPHQL]
-    async with httpx.AsyncClient(base_url=url, timeout=30.0) as client:
-        try:
-            await client.get("/")
-        except httpx.RequestError:
-            pytest.skip(f"GraphQL backend server at {url} is offline")
-    transport = HTTPXAsyncTransport(url=url)
-    return Client(transport=transport, fetch_schema_from_transport=False)
-
-@pytest_asyncio.fixture
-async def auth_token(backend, rest_client, graphql_client):
-    try:
-        login_payload = {
-            "tenantId": "default-tenant",
-            "email": "admin@example.com",
-            "password": "password"
-        }
-        if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST, BackendType.PYTHON_REST]:
-            response = await rest_client.post("/api/auth/login", json=login_payload)
-            return response.json().get("token", "dummy-token")
-        else:
-            query = gql('''
-                mutation {
-                    login(tenantId: "default-tenant", email: "admin@example.com", password: "password")
-                }
-            ''')
-            response = await graphql_client.execute_async(query)
-            return response["login"]
-    except Exception:
-        return "dummy-token"
-
-@pytest_asyncio.fixture
-async def authenticated_client(backend, auth_token):
-    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST, BackendType.PYTHON_REST]:
-        url = BACKEND_URLS[backend]
-        async with httpx.AsyncClient(
-            base_url=url,
-            headers={"Authorization": f"Bearer {auth_token}"},
-            timeout=30.0
-        ) as client:
-            try:
-                await client.get("/api/health")
-            except httpx.RequestError:
-                pytest.skip(f"Backend server for {backend.value} at {url} is offline")
-            yield client
-    else:
-        url = BACKEND_URLS[BackendType.GRAPHQL]
-        async with httpx.AsyncClient(base_url=url, timeout=30.0) as client:
-            try:
-                await client.get("/")
-            except httpx.RequestError:
-                pytest.skip(f"GraphQL backend server at {url} is offline")
-        transport = HTTPXAsyncTransport(
-            url=url,
-            headers={"Authorization": f"Bearer {auth_token}"}
-        )
-        yield Client(transport=transport, fetch_schema_from_transport=False)
+@pytest.fixture(scope='session')
+def session_identity(backend, run_id):
+    with httpx.Client(timeout=10, follow_redirects=False) as client:
+        return bootstrap(client, backend, BACKEND_URLS[backend], run_id, os.getenv('CONFORMANCE_SEED') == '1')
 
 @pytest.fixture
-def seed_data(backend):
-    # Dummy seed data fixture
-    return {"status": "seeded"}
+def tenant_id(session_identity):
+    return session_identity.tenant_id
 
-def normalize_graphql_response(response: Dict[str, Any]) -> Any:
-    # Basic unwrap logic if wrapped in data
-    if "data" in response and len(response.keys()) == 1:
-        return response["data"]
-    return response
+@pytest.fixture
+def auth_token(session_identity):
+    return session_identity.token
 
-def normalize_keys(obj: Any, target_case='camel') -> Any:
-    import re
-    if isinstance(obj, dict):
-        result = {}
-        for k, v in obj.items():
-            if target_case == 'camel':
-                new_key = re.sub(r'_([a-z])', lambda m: m.group(1).upper(), k)
-            else:
-                new_key = re.sub(r'([A-Z])', lambda m: '_' + m.group(1).lower(), k)
-            result[new_key] = normalize_keys(v, target_case)
-        return result
-    elif isinstance(obj, list):
-        return [normalize_keys(item, target_case) for item in obj]
-    return obj
+@pytest_asyncio.fixture
+async def rest_client(backend, auth_token):
+    if backend == BackendType.GRAPHQL:
+        yield None
+    else:
+        async with httpx.AsyncClient(base_url=BACKEND_URLS[backend], timeout=10, follow_redirects=False,
+            headers={'Authorization': 'Bearer '+auth_token}) as client:
+            yield client
 
-def strip_volatile_fields(obj: Any, keys=('id', 'createdAt', 'updatedAt', 'occurredAt', 'assignedAt')) -> Any:
-    if isinstance(obj, dict):
-        return {k: strip_volatile_fields(v, keys) for k, v in obj.items() if k not in keys}
-    elif isinstance(obj, list):
-        return [strip_volatile_fields(item, keys) for item in obj]
-    return obj
+@pytest_asyncio.fixture
+async def graphql_client(backend, auth_token):
+    if backend != BackendType.GRAPHQL:
+        yield None
+    else:
+        transport = HTTPXAsyncTransport(url=BACKEND_URLS[backend], timeout=10,
+            headers={'Authorization': 'Bearer '+auth_token})
+        async with Client(transport=transport, fetch_schema_from_transport=False) as client:
+            yield client
+
+@pytest_asyncio.fixture
+async def authenticated_client(backend, rest_client, graphql_client):
+    # The other protocol fixture yields None without opening any connection.
+    return graphql_client if backend == BackendType.GRAPHQL else rest_client
+
+@pytest.fixture
+def seed_data(session_identity):
+    if not session_identity.seeded:
+        raise HarnessError('seed_data requires --seed; no dummy seeding is permitted')
+    return {'tenantId': session_identity.tenant_id, 'status': 'created-and-authenticated'}
+
+def pytest_configure(config):
+    config.addinivalue_line('markers', 'conformance_gap: scenario has no implementation')
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        source = textwrap.dedent(inspect.getsource(item.obj))
+        function = next(n for n in ast.walk(ast.parse(source)) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)))
+        body = [s for s in function.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant) and isinstance(s.value.value, str))]
+        if not body or all(isinstance(s, ast.Pass) or isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant) and s.value.value is Ellipsis for s in body):
+            item.add_marker('conformance_gap')
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_runtest_setup(item):
+    if item.get_closest_marker('conformance_gap'):
+        pytest.fail('Unimplemented conformance scenario: '+item.originalname, pytrace=False)
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_json_runtest_metadata(item, call):
+    backend = item.callspec.params.get('backend') if hasattr(item, 'callspec') else None
+    return {'backend': backend.value if isinstance(backend, BackendType) else None,
+        'scenario': item.originalname or item.name, 'coverage_gap': bool(item.get_closest_marker('conformance_gap'))}
+
+def normalize_graphql_response(response):
+    if isinstance(response, dict) and response.get('errors'):
+        raise HarnessError('GraphQL operation returned errors')
+    return response['data'] if isinstance(response, dict) and set(response) == {'data'} else response

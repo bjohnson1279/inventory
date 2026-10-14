@@ -1,241 +1,106 @@
+"""Fail-closed conformance runner: smoke proves wiring, full exposes coverage gaps."""
 import argparse
 import json
+import os
+from pathlib import Path
 import subprocess
 import sys
 import time
-from collections import defaultdict
-from typing import Dict, Any
-
+import uuid
+from collections import Counter
+import httpx
 try:
-    import httpx
-except ImportError:
-    print("Please install httpx: pip install httpx")
-    sys.exit(1)
+    from scripts.conformance_runtime import BACKENDS, backend_urls, check_health, HarnessError
+except ModuleNotFoundError:
+    from conformance_runtime import BACKENDS, backend_urls, check_health, HarnessError
 
+ROOT = Path(__file__).resolve().parents[1]
 
-import os
+def wait_for_backends(max_retries=30, initial_delay=2):
+    urls = backend_urls()
+    last = {}
+    with httpx.Client(timeout=2, follow_redirects=False) as client:
+        for attempt in range(max_retries):
+            for backend in BACKENDS:
+                try:
+                    check_health(client, backend, urls[backend])
+                    last.pop(backend, None)
+                except HarnessError as exc:
+                    last[backend] = str(exc)
+            if not last:
+                return
+            if attempt+1 < max_retries:
+                time.sleep(initial_delay)
+    raise HarnessError('Required backend health checks failed: '+ '; '.join(last.values()))
 
-BACKENDS = {
-    "gql": os.getenv("GRAPHQL_URL", "http://localhost:4000"),
-    "express": os.getenv("EXPRESS_REST_URL", "http://localhost:5000"),
-    "php": os.getenv("PHP_REST_URL", "http://localhost:8000"),
-}
-
-def check_health(url: str) -> bool:
+def parse_and_print_report(report_file):
     try:
-        # Some backends might not have /api/health, we check / or /api/health
-        health_endpoints = [f"{url}/api/health", f"{url}/health", url]
-        for ep in health_endpoints:
-            try:
-                res = httpx.get(ep, timeout=2.0)
-                if res.status_code < 500:
-                    return True
-            except httpx.RequestError:
-                continue
-        return False
-    except Exception:
-        return False
-
-def wait_for_backends(max_retries: int = 30, initial_delay: float = 2.0):
-    print("\n--- Health Checks ---")
-    status = {name: False for name in BACKENDS}
-    
-    for attempt in range(max_retries):
-        all_healthy = True
-        for name, url in BACKENDS.items():
-            if not status[name]:
-                if check_health(url):
-                    status[name] = True
-                    print(f"[\033[92mOK\033[0m] {name:10} ({url})")
-                else:
-                    all_healthy = False
-        
-        if all_healthy:
-            print("All backends are healthy!\n")
-            return
-            
-        time.sleep(initial_delay)
-        
-    print("\n[\033[91mFAIL\033[0m] Health check timed out for:")
-    for name, is_healthy in status.items():
-        if not is_healthy:
-            print(f"  - {name} ({BACKENDS[name]})")
-    sys.exit(1)
-
-def seed_data():
-    print("\n--- Seeding Test Data ---")
-    setup_payload = {
-        "orgName": "Test Org",
-        "tenantId": "default-tenant",
-        "adminName": "Admin",
-        "adminEmail": "admin@example.com",
-        "adminPassword": "password"
-    }
-    
-    for name, url in BACKENDS.items():
-        try:
-            if name == "gql":
-                seed_url = f"{url}/"
-                mutation = """
-                mutation {
-                    setup(
-                        orgName: "Test Org",
-                        tenantId: "default-tenant",
-                        adminName: "Admin",
-                        adminEmail: "admin@example.com",
-                        adminPassword: "password"
-                    )
-                }
-                """
-                res = httpx.post(seed_url, json={"query": mutation}, timeout=10.0)
-            else:
-                seed_url = f"{url}/api/auth/setup"
-                res = httpx.post(seed_url, json=setup_payload, timeout=10.0)
-                
-            if res.status_code in (200, 201):
-                print(f"[\033[92mOK\033[0m] {name:10} seeded successfully")
-            else:
-                print(f"[\033[93mWARN\033[0m] {name:10} seeding returned {res.status_code} - {res.text}")
-        except Exception as e:
-            print(f"[\033[91mFAIL\033[0m] {name:10} seeding failed: {e}")
-
-def run_pytest(report_file: str, verbose: bool):
-    print("\n--- Running Conformance Tests ---")
-    cmd = [
-        "pytest",
-        "tests/conformance/",
-        "--tb=short",
-        "--json-report",
-        f"--json-report-file={report_file}"
-    ]
-    if verbose:
-        cmd.append("-v")
-        
-    try:
-        # Note: pytest exits with 1 if tests fail, which is expected
-        subprocess.run(cmd, check=False)
-    except FileNotFoundError:
-        print("pytest command not found. Please ensure pytest and pytest-json-report are installed.")
-        sys.exit(1)
-
-def parse_and_print_report(report_file: str):
-    print("\n--- Conformance Summary Matrix ---")
-    try:
-        with open(report_file, 'r') as f:
-            data = json.load(f)
-    except Exception as e:
-        print(f"Failed to load JSON report: {e}")
-        return
-
-    # Matrix: row = test module, column = backend
-    matrix: Dict[str, Dict[str, Dict[str, int]]] = defaultdict(lambda: defaultdict(lambda: {"pass": 0, "fail": 0, "skip": 0}))
-    
-    total_pass = 0
-    total_fail = 0
-    total_skip = 0
-    
-    tests = data.get("tests", [])
-    if not tests:
-        print("No tests found in the report.")
-        return
-        
+        data = json.loads(Path(report_file).read_text(encoding='utf-8'))
+    except (OSError, ValueError) as exc:
+        raise HarnessError('Missing or invalid pytest JSON report') from exc
+    if isinstance(data, dict) and isinstance(data.get('tests'), list):
+        print('Backend result counts (smoke or incomplete scenarios do not establish parity):')
+        for backend in BACKENDS:
+            results = [t for t in data['tests'] if isinstance(t, dict) and isinstance(t.get('metadata'), dict) and t['metadata'].get('backend') == backend.value]
+            counts = Counter(t.get('outcome', 'unknown') for t in results)
+            gaps = sum(bool(t['metadata'].get('coverage_gap')) for t in results)
+            print(f'{backend.value}: '+', '.join(f'{name}={count}' for name, count in sorted(counts.items()))+f', coverage_gaps={gaps}')
+    if not isinstance(data, dict) or data.get('exitcode') != 0:
+        raise HarnessError('Pytest report contains a nonzero/missing exit code')
+    if any(c.get('outcome') == 'failed' for c in data.get('collectors', [])):
+        raise HarnessError('Conformance test collection failed')
+    tests = data.get('tests')
+    if not isinstance(tests, list) or not tests:
+        raise HarnessError('Conformance report has no tests')
+    matrix = {b.value: {} for b in BACKENDS}
     for test in tests:
-        nodeid = test.get("nodeid", "")
-        outcome = test.get("outcome", "unknown")
-        
-        # Parse module
-        parts = nodeid.split("::")
-        module = parts[0] if parts else "unknown"
-        
-        # Try to guess backend from parameterization (e.g. [gql], [express], [php])
-        backend = "unknown"
-        for b in BACKENDS.keys():
-            if f"[{b}" in nodeid or f"-{b}" in nodeid:
-                backend = b
-                break
-                
-        if backend == "unknown":
-            # If not parameterized by backend, just put under general
-            backend = "general"
-            
-        if outcome == "passed":
-            matrix[module][backend]["pass"] += 1
-            total_pass += 1
-        elif outcome == "failed":
-            matrix[module][backend]["fail"] += 1
-            total_fail += 1
-        elif outcome == "skipped":
-            matrix[module][backend]["skip"] += 1
-            total_skip += 1
-            
-    # Print table header
-    backends_found = set()
-    for m in matrix.values():
-        backends_found.update(m.keys())
-    backends_found = sorted(list(backends_found))
-    
-    print(f"{'Test Module':<40}", end="")
-    for b in backends_found:
-        print(f" | {b:^15}", end="")
-    print("\n" + "-" * 40 + ("|-" + "-"*15) * len(backends_found))
-    
-    for module, b_data in matrix.items():
-        # Trim module name for display
-        display_module = module.replace("tests/conformance/", "")
-        if len(display_module) > 38:
-            display_module = "..." + display_module[-35:]
-            
-        print(f"{display_module:<40}", end="")
-        for b in backends_found:
-            counts = b_data.get(b, {"pass": 0, "fail": 0, "skip": 0})
-            p, f_c, s = counts["pass"], counts["fail"], counts["skip"]
-            
-            cell = []
-            if p > 0: cell.append(f"\033[92m{p} P\033[0m")
-            if f_c > 0: cell.append(f"\033[91m{f_c} F\033[0m")
-            if s > 0: cell.append(f"\033[93m{s} S\033[0m")
-            
-            cell_str = " ".join(cell) if cell else "-"
-            # Calculate visible length (ignoring ANSI escapes) for alignment
-            visible_len = sum(len(str(c)) for c in [p, f_c, s] if c > 0) + (len(cell)-1 if len(cell)>0 else 1)
-            padding = 15 - visible_len - (2 * len(cell) if cell else 0) # rough estimate for padding
-            
-            # Simplified formatting for matrix cell
-            cell_text = ", ".join(
-                ([f"{p}P"] if p else []) + 
-                ([f"{f_c}F"] if f_c else []) + 
-                ([f"{s}S"] if s else [])
-            )
-            if not cell_text: cell_text = "-"
-            
-            print(f" | {cell_text:^15}", end="")
-        print()
-        
-    print("\n" + "=" * 60)
-    print(f"TOTALS: \033[92m{total_pass} Passed\033[0m, \033[91m{total_fail} Failed\033[0m, \033[93m{total_skip} Skipped\033[0m")
-    
-    if total_fail > 0:
-        sys.exit(1)
+        metadata = test.get('metadata', {})
+        backend, scenario = metadata.get('backend'), metadata.get('scenario')
+        if backend not in matrix or not isinstance(scenario, str) or not scenario:
+            raise HarnessError('Test result has no valid backend/scenario attribution')
+        if scenario in matrix[backend]:
+            raise HarnessError('Duplicate backend/scenario result')
+        matrix[backend][scenario] = test.get('outcome')
+        if test.get('outcome') != 'passed' or metadata.get('coverage_gap'):
+            raise HarnessError(f'{backend}: {scenario} did not pass (skips/xfails/gaps are failures)')
+    expected = set(next(iter(matrix.values())))
+    mandatory = {'test_backend_health', 'test_authenticated_identity', 'test_unauthenticated_identity_is_rejected'}
+    if not mandatory <= expected or any(set(values) != expected for values in matrix.values()):
+        raise HarnessError('Report lacks mandatory smoke scenarios or equal coverage across all four backends')
+    for backend, scenarios in matrix.items():
+        print(f'{backend}: {len(scenarios)} passed')
+    return matrix
 
-def main():
-    parser = argparse.ArgumentParser(description="Run Conformance Tests for Inventory Systems")
-    parser.add_argument("--skip-health-check", action="store_true", help="Skip health checking backends")
-    parser.add_argument("--seed", action="store_true", help="Seed test data before running")
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose pytest output")
-    parser.add_argument("--report-dir", default=".", help="Directory to save the conformance report")
-    args = parser.parse_args()
-    
-    import os
-    report_file = os.path.join(args.report_dir, "conformance-report.json")
-    
-    if not args.skip_health_check:
-        wait_for_backends()
-        
-    if args.seed:
-        seed_data()
-        
-    run_pytest(report_file, args.verbose)
-    parse_and_print_report(report_file)
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--seed', action='store_true', help='Create unique test tenants and verify their login; disposable environments only')
+    parser.add_argument('--suite', choices=['full', 'smoke'], default='full')
+    parser.add_argument('--skip-health-check', action='store_true', help='Skip readiness polling; mandatory health tests still run')
+    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--report-dir', default='conformance-report')
+    args = parser.parse_args(argv)
+    report_dir = Path(args.report_dir).resolve()
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_file = report_dir/'conformance-report.json'
+    report_file.unlink(missing_ok=True)  # Never accept a stale prior success.
+    env = dict(os.environ, CONFORMANCE_RUN_ID=uuid.uuid4().hex, CONFORMANCE_SEED='1' if args.seed else '0')
+    env['PYTHONPATH'] = str(ROOT)+os.pathsep+env.get('PYTHONPATH', '')
+    try:
+        if not args.skip_health_check:
+            wait_for_backends()
+        target = 'tests/conformance/test_harness_smoke.py' if args.suite == 'smoke' else 'tests/conformance'
+        command = [sys.executable, '-m', 'pytest', target, '--tb=short', '--json-report', '--json-report-omit=log',
+            f'--json-report-file={report_file}', '-v' if args.verbose else '-q']
+        result = subprocess.run(command, cwd=ROOT, env=env, check=False)
+        if result.returncode != 0:
+            print(f'Pytest exited {result.returncode}; report: {report_file}', file=sys.stderr)
+        parse_and_print_report(report_file)
+        if result.returncode != 0:
+            raise HarnessError(f'Pytest failed with exit code {result.returncode}')
+        return 0
+    except (HarnessError, OSError) as exc:
+        print(f'Conformance FAILED: {exc}', file=sys.stderr)
+        return 1
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    sys.exit(main())

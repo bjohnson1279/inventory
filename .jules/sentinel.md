@@ -105,3 +105,9 @@
 - **Benchmark Script Quarantine**: Never commit unasserted benchmark scripts into `tests/`. Benchmark metrics belong in the PR description markdown body, not in the production test directory.
 - **Coupled Test Double Synchronization**: Whenever domain services are refactored to use batched methods (`saveAll`, `upsert`), immediately update the shared test double in `tests/Doubles/` to prevent Mockery contract failures.
 - **Micro-PR Coalescence**: Group related controller or service modifications into a single coherent PR rather than opening single-method micro-PRs.
+
+## 2026-10-13 - Security PR Supersession Hygiene & Cumulative Patching
+**Learning:**
+1. Multiple security bot runs submitted overlapping pull requests for the same vulnerability across separate branches (e.g. Sidecar PR #67 fixing RateLimitMiddleware DoS leak, followed by PR #69 fixing the same leak plus security headers; React PR #364 fixing URL injection followed by PR #367 fixing the same panel). This left superseded PRs open in the review queue.
+**Action:**
+- **Inspect Open Security Findings Before Branching**: Before creating a new branch for a vulnerability or DoS fix, query `gh pr list --search "author:app/sentinel" --state open`. If a branch already addresses the finding, commit cumulative patches to that branch or explicitly close the superseded branch with an audit reference upon opening an expanded remediation PR.

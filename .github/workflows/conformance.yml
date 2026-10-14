@@ -218,7 +218,7 @@ jobs:
       
       - name: Run Docker Compose
         run: |
-          docker compose -f docker-compose.conformance.yml up --build --abort-on-container-exit --exit-code-from conformance-runner
+          docker compose --project-name inventory-conformance-${{ github.run_id }} -f docker-compose.conformance.yml up --build --abort-on-container-exit --exit-code-from conformance-runner
           
       - name: Upload Conformance Report
         if: always()
@@ -227,3 +227,7 @@ jobs:
           name: conformance-report
           path: conformance-report/conformance-report.json
           retention-days: 14
+
+      - name: Clean up disposable conformance stack
+        if: always()
+        run: docker compose --project-name inventory-conformance-${{ github.run_id }} -f docker-compose.conformance.yml down --volumes

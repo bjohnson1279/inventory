@@ -4,21 +4,21 @@ from conftest import BackendType, BACKEND_URLS
 
 
 @pytest.mark.asyncio
-async def test_anomaly_detection_endpoint_returns_valid_schema(backend, authenticated_client, rest_client):
-    """All 3 backends return matching AnomalySummary structure from the anomaly detection endpoint."""
+async def test_anomaly_detection_endpoint_returns_valid_schema(backend, authenticated_client, rest_client, tenant_id):
+    """All four backends return matching AnomalySummary structure from the anomaly detection endpoint."""
     from gql import gql as gql_query
 
-    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
+    if backend != BackendType.GRAPHQL:
         try:
-            response = await rest_client.get("/api/anomaly-detection/analyze", params={"tenantId": "default-tenant"})
+            response = await rest_client.get("/api/anomaly-detection/analyze", params={"tenantId": tenant_id})
             assert response.status_code == 200
             data = response.json()
         except (httpx.ConnectError, httpx.ConnectTimeout):
-            pytest.skip(f"Backend server for {backend.value} is offline")
+            pytest.fail(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
-            query {
-                analyzeInventoryAnomalies(tenantId: "default-tenant") {
+            query($tenantId: String!) {
+                analyzeInventoryAnomalies(tenantId: $tenantId) {
                     alerts {
                         alertType
                         severity
@@ -39,7 +39,7 @@ async def test_anomaly_detection_endpoint_returns_valid_schema(backend, authenti
                 }
             }
         ''')
-        result = await authenticated_client.execute_async(query)
+        result = await authenticated_client.execute(query, variable_values={'tenantId': tenant_id})
         data = result["analyzeInventoryAnomalies"]
 
     # Validate structure
@@ -59,21 +59,21 @@ async def test_anomaly_detection_endpoint_returns_valid_schema(backend, authenti
 
 
 @pytest.mark.asyncio
-async def test_rebalance_matrix_endpoint_returns_valid_schema(backend, authenticated_client, rest_client):
-    """All 3 backends return matching RebalanceMatrix structure from the rebalancing endpoint."""
+async def test_rebalance_matrix_endpoint_returns_valid_schema(backend, authenticated_client, rest_client, tenant_id):
+    """All four backends return matching RebalanceMatrix structure from the rebalancing endpoint."""
     from gql import gql as gql_query
 
-    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
+    if backend != BackendType.GRAPHQL:
         try:
-            response = await rest_client.get("/api/rebalance/matrix", params={"tenantId": "default-tenant"})
+            response = await rest_client.get("/api/rebalance/matrix", params={"tenantId": tenant_id})
             assert response.status_code == 200
             data = response.json()
         except (httpx.ConnectError, httpx.ConnectTimeout):
-            pytest.skip(f"Backend server for {backend.value} is offline")
+            pytest.fail(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
-            query {
-                rebalanceMatrix(tenantId: "default-tenant") {
+            query($tenantId: String!) {
+                rebalanceMatrix(tenantId: $tenantId) {
                     recommendations {
                         sku
                         sourceWarehouseId
@@ -92,7 +92,7 @@ async def test_rebalance_matrix_endpoint_returns_valid_schema(backend, authentic
                 }
             }
         ''')
-        result = await authenticated_client.execute_async(query)
+        result = await authenticated_client.execute(query, variable_values={'tenantId': tenant_id})
         data = result["rebalanceMatrix"]
 
     # Validate structure
@@ -103,13 +103,13 @@ async def test_rebalance_matrix_endpoint_returns_valid_schema(backend, authentic
 
 
 @pytest.mark.asyncio
-async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authenticated_client, rest_client):
+async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authenticated_client, rest_client, tenant_id):
     """Graceful handling when no data exists — returns empty alerts with zero risk score."""
     from gql import gql as gql_query
 
-    empty_tenant = "nonexistent-tenant-for-test"
+    empty_tenant = tenant_id
 
-    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
+    if backend != BackendType.GRAPHQL:
         try:
             response = await rest_client.get(
                 "/api/anomaly-detection/analyze",
@@ -118,7 +118,7 @@ async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authentic
             assert response.status_code == 200
             data = response.json()
         except (httpx.ConnectError, httpx.ConnectTimeout):
-            pytest.skip(f"Backend server for {backend.value} is offline")
+            pytest.fail(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
             query($tenantId: String!) {
@@ -132,7 +132,7 @@ async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authentic
                 }
             }
         ''')
-        result = await authenticated_client.execute_async(query, variable_values={"tenantId": empty_tenant})
+        result = await authenticated_client.execute(query, variable_values={"tenantId": empty_tenant})
         data = result["analyzeInventoryAnomalies"]
 
     if "alerts" in data:
@@ -142,13 +142,13 @@ async def test_anomaly_detection_empty_data_returns_no_alerts(backend, authentic
 
 
 @pytest.mark.asyncio
-async def test_rebalance_matrix_single_warehouse_returns_no_recommendations(backend, authenticated_client, rest_client):
-    """No inter-warehouse transfers when only 1 warehouse exists."""
+async def test_rebalance_matrix_empty_tenant_returns_no_recommendations(backend, authenticated_client, rest_client, tenant_id):
+    """A newly seeded empty tenant has no inter-warehouse recommendations."""
     from gql import gql as gql_query
 
-    single_wh_tenant = "single-warehouse-tenant-test"
+    single_wh_tenant = tenant_id
 
-    if backend in [BackendType.EXPRESS_REST, BackendType.PHP_REST]:
+    if backend != BackendType.GRAPHQL:
         try:
             response = await rest_client.get(
                 "/api/rebalance/matrix",
@@ -157,7 +157,7 @@ async def test_rebalance_matrix_single_warehouse_returns_no_recommendations(back
             assert response.status_code == 200
             data = response.json()
         except (httpx.ConnectError, httpx.ConnectTimeout):
-            pytest.skip(f"Backend server for {backend.value} is offline")
+            pytest.fail(f"Backend server for {backend.value} is offline")
     else:
         query = gql_query('''
             query($tenantId: String!) {
@@ -168,7 +168,7 @@ async def test_rebalance_matrix_single_warehouse_returns_no_recommendations(back
                 }
             }
         ''')
-        result = await authenticated_client.execute_async(query, variable_values={"tenantId": single_wh_tenant})
+        result = await authenticated_client.execute(query, variable_values={"tenantId": single_wh_tenant})
         data = result["rebalanceMatrix"]
 
     if "recommendations" in data:
