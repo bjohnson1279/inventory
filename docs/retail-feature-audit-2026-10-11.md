@@ -31,6 +31,20 @@ adapters, external reconciliation, email/PDF exports and public sharing remain
 unfinished. Native PO packaging
 and dedicated transfer/UOM screens remain follow-up work.
 
+Python workforce refinements now include persisted operator profiles, validated
+shift assignments and clock transitions, source-backed activity metrics, and
+explicit-input staffing plans. The Python client uses actual records and unknown
+measurement states; see [workforce](../python-ddd-inventory/WORKFORCE.md).
+Payroll, staff availability/leave and automated demand-forecast linkage remain
+outside these refinements.
+
+Workforce verification passed 20 focused backend cases, 51 broader
+security/count checks, the final three SQLite/PostgreSQL security contracts,
+and four concurrency/migration checks. The final client selection passed 40
+tests and TypeScript compilation. These selections overlap; they are not a new
+full-suite coverage measurement. Deployment requires the reviewed migration
+for the four workforce tables.
+
 ## Assessment
 
 The application has substantial inventory-domain breadth, especially in the TypeScript and PHP implementations. It is not yet supported by credible evidence of four-backend behavioral parity. Several features with immediate retail value—physical counts, aging, reliable notifications, and complete Python workflows—are unfinished at the API/persistence boundary. Stock transaction consistency and tenant isolation deserve attention before additional advanced automation.
