@@ -41,12 +41,28 @@ Smoke runs three mandatory scenarios on all four backends: genuine healthy JSON,
 authenticated access to the seeded administrator, and denial of unauthenticated
 access. Its twelve passes prove basic harness/identity wiring, not inventory parity.
 
-Full is the default and includes all declared scenarios. **Forty original
-scenarios remain `pass`-only placeholders.** Collection identifies these and
-execution reports them as explicit failures on every backend: 160 coverage-gap
-results. Full conformance must remain nonzero until those business scenarios are
-implemented and passing. Unsupported AI endpoints are also genuine failures;
-they are not redirected into another backend or hidden behind offline skips.
+Full is the default and includes 47 scenarios per backend: 40 business workflows,
+four AI checks and three smoke probes, for 188 attributed results. All forty
+original placeholders now execute assertions. New empty scenarios are still
+rejected during collection/execution. Missing capabilities, API errors and
+behavioral disagreements remain failures; implementing tests does not certify
+that the backends pass them. Unsupported AI endpoints are also genuine failures.
+
+Business workflows require `--seed` and create a fresh tenant per scenario.
+This isolates costing configuration, counts, returns and empty-tenant AI probes.
+Assertions preserve serial/reference identities, FEFO/route order, integer cents,
+and stock/version invariants; they do not use the permissive legacy comparator.
+TLS verification stays enabled, with a shared trust context to avoid repeatedly
+loading the Windows certificate store for hundreds of clients.
+
+Tamper detection temporarily changes one owned compliance-ledger payload and
+restores it in `finally`, then verifies that the backend accepts the restored
+chain. `--stack conformance` supplies the four disposable database URLs and enables
+this fault. Configured stacks must explicitly set `CONFORMANCE_DB_FAULTS=1` and
+`CONFORMANCE_{GQL,EXPRESS,PHP,PYTHON}_DATABASE_URL` as applicable. Database names must
+match `inventory_gql`, `inventory_express`, `inventory_php` or `inventory_python`.
+The PostgreSQL driver is included in the harness requirements. No tamper scenario
+is silently skipped when this configuration or a ledger API is missing.
 
 The runner validates the full scenario manifest on each backend. Filtering down
 to smoke with `PYTEST_ADDOPTS` cannot produce a successful full conformance result.
@@ -108,16 +124,17 @@ python -m pytest tests/harness -q --tb=short
 Self-tests exercise strict health/setup/authentication checks, report completeness,
 skip/error handling, stale-report removal and subprocess exit codes. Local protocol
 test servers exercise the actual pytest fixtures and runner for all four transports,
-including GraphQL's independent authentication path and 160 placeholder failures.
+including GraphQL's independent authentication path and rejection of business runs
+against servers that implement only smoke. Stateful assertion tests deliberately
+introduce wrong balances and single-cent errors. GraphQL adapter requests are
+checked against the checked-in SDL, including input and enum validation.
 These servers are test doubles and do not certify the live applications' parity.
 
-The final harness verification passed all 47 self-tests on 2026-10-14.
-Python compilation, YAML parsing and Compose configuration validation passed.
-Six live smoke tests passed against isolated Express and Python services. This
-used a cached Express runtime and current Python source, rather than fresh builds
-of all four backends. Docker Desktop's engine API then returned HTTP 500 during
-GraphQL/PHP validation, so the twelve-test live smoke run is not yet certified.
-A live four-backend inventory parity run has not been certified by these checks.
+Current validation evidence and remaining failures are recorded in
+`docs/conformance-scenario-status-2026-10-14.md`. A live four-backend inventory
+parity run has not been certified by harness self-tests or isolated Python checks.
+The separate databases used here establish behavior per backend; shared physical
+schema compatibility requires additional cross-backend read/write tests.
 
 ## Structure
 - `scripts/conformance_runtime.py`: Explicit backend protocols and bootstrap

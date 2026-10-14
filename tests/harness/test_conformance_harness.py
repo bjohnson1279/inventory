@@ -225,10 +225,12 @@ def test_actual_fixtures_and_runner_pass_all_four_smoke_protocols(protocol_serve
     assert len(value['tests']) == 12 and all(t['outcome']=='passed' for t in value['tests'])
     assert {t['metadata']['backend'] for t in value['tests']} == {'gql','express','php','python'}
 
-def test_pass_only_scenarios_are_real_failures(protocol_servers, tmp_path):
+def test_business_scenarios_fail_against_smoke_only_protocols(protocol_servers, tmp_path):
     result = invoke_runner(tmp_path, 'full')
     assert result.returncode != 0
     value = json.loads((tmp_path/'conformance-report.json').read_text())
     gaps = [t for t in value['tests'] if t['metadata']['coverage_gap']]
-    assert len(gaps) == 160 and all(t['outcome']=='error' for t in gaps)
+    assert gaps == []
+    assert len(value['tests']) == 188
+    assert any(t['outcome'] in ('failed','error') for t in value['tests'])
     assert not any(t['outcome']=='skipped' for t in value['tests'])

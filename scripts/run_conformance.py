@@ -100,6 +100,9 @@ def main(argv=None):
     env['PYTHONPATH'] = str(ROOT)+os.pathsep+env.get('PYTHONPATH', '')
     if args.stack == 'conformance':
         env.update({ENV_URLS[b][0]: url for b, url in CONFORMANCE_URLS.items()})
+        env['CONFORMANCE_DB_FAULTS'] = '1'
+        for backend, database in zip(BACKENDS, ('inventory_gql', 'inventory_express', 'inventory_php', 'inventory_python')):
+            env[f'CONFORMANCE_{backend.value.upper()}_DATABASE_URL'] = f'postgresql://inventory_user:inventory_password@127.0.0.1:5034/{database}'
     failure_code = 1
     try:
         validate_credentials(args.seed, env)

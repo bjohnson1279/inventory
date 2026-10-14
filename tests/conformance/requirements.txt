@@ -6,3 +6,4 @@ gql[httpx]
 deepdiff
 pyyaml
 jsonschema
+psycopg[binary]>=3.2,<4

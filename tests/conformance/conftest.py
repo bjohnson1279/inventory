@@ -4,12 +4,14 @@ import inspect
 import os
 import textwrap
 import uuid
+import ssl
 import pytest
 import pytest_asyncio
 import httpx
 from gql import Client
 from gql.transport.httpx import HTTPXAsyncTransport
 from scripts.conformance_runtime import BackendType, BACKENDS, backend_urls, bootstrap, HarnessError
+from api import API
 
 BACKEND_URLS = backend_urls()
 
@@ -22,9 +24,20 @@ def run_id():
     return os.getenv('CONFORMANCE_RUN_ID') or uuid.uuid4().hex
 
 @pytest.fixture(scope='session')
-def session_identity(backend, run_id):
-    with httpx.Client(timeout=10, follow_redirects=False) as client:
-        return bootstrap(client, backend, BACKEND_URLS[backend], run_id, os.getenv('CONFORMANCE_SEED') == '1')
+def tls_context():
+    # Loading the Windows trust store once avoids repeated SSL initialization
+    # for hundreds of HTTP clients while retaining certificate verification.
+    return ssl.create_default_context()
+
+@pytest.fixture(scope='session')
+def bootstrap_client(backend, tls_context):
+    with httpx.Client(timeout=10, follow_redirects=False, verify=tls_context) as client:
+        yield client
+
+@pytest.fixture(scope='session')
+def session_identity(backend, run_id, bootstrap_client):
+    bootstrap_client.cookies.clear()
+    return bootstrap(bootstrap_client, backend, BACKEND_URLS[backend], run_id, os.getenv('CONFORMANCE_SEED') == '1')
 
 @pytest.fixture
 def tenant_id(session_identity):
@@ -63,6 +76,18 @@ def seed_data(session_identity):
     if not session_identity.seeded:
         raise HarnessError('seed_data requires --seed; no dummy seeding is permitted')
     return {'tenantId': session_identity.tenant_id, 'status': 'created-and-authenticated'}
+
+@pytest_asyncio.fixture
+async def scenario_api(backend, bootstrap_client, tls_context):
+    """Each business scenario owns a fresh tenant; costing/config and AI cannot leak."""
+    if os.getenv('CONFORMANCE_SEED') != '1':
+        raise HarnessError('Business conformance scenarios require --seed on disposable backends')
+    bootstrap_client.cookies.clear()
+    identity = bootstrap(bootstrap_client, backend, BACKEND_URLS[backend], uuid.uuid4().hex, True)
+    from scripts.conformance_runtime import origin
+    async with httpx.AsyncClient(base_url=origin(BACKEND_URLS[backend]), timeout=10, follow_redirects=False, verify=tls_context,
+        headers={'Authorization': 'Bearer ' + identity.token}) as client:
+        yield API(backend, client, BACKEND_URLS[backend], identity)
 
 def pytest_configure(config):
     config.addinivalue_line('markers', 'conformance_gap: scenario has no implementation')

@@ -49,8 +49,9 @@ for the four workforce tables.
 
 The conformance harness has since been repaired to include all four backends,
 verify actual setup/authentication, propagate failures and require complete,
-attributed reports. Empty scenarios now fail explicitly; the forty original
-business scenarios still need implementations. Mandatory smoke probes establish
+attributed reports. All forty original business scenarios now have executable
+workflows and assertions; missing backend capabilities remain genuine failures.
+New empty scenarios still fail explicitly. Mandatory smoke probes establish
 health/identity wiring separately from full parity. See the updated
 [harness guide](../tests/conformance/README.md).
 
