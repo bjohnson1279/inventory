@@ -8,7 +8,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import httpx
 import pytest
-from scripts.conformance_runtime import BackendType, BACKENDS, HarnessError, bootstrap, check_health
+from scripts.conformance_runtime import BackendType, BACKENDS, HarnessError, bootstrap, check_health, backend_urls, graphql_endpoint, CONFORMANCE_URLS
 from scripts import run_conformance as runner
 
 @pytest.mark.parametrize('status,payload', [(404, {'status':'ok'}), (401, {'status':'ok'}), (500, {'status':'ok'}), (200, {'status':'degraded'}), (200, {}), (302, {'status':'ok'})])
@@ -16,6 +16,18 @@ def test_health_rejects_false_success(status, payload):
     with httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(status, json=payload))) as client:
         with pytest.raises(HarnessError):
             check_health(client, BackendType.PYTHON_REST, 'http://service')
+
+def test_health_rejects_unrelated_service_on_php_port():
+    with httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200,json={'status':'healthy','service':'threat-intel-api'}))) as client:
+        with pytest.raises(HarnessError,match='different service'):
+            check_health(client, BackendType.PHP_REST, 'http://localhost:8000')
+
+@pytest.mark.parametrize('url,expected', [('http://service:4000','http://service:4000/graphql'),
+    ('http://service:4000/','http://service:4000/graphql'), ('http://service:4000/graphql','http://service:4000/graphql'),
+    ('http://service/custom/graphql','http://service/custom/graphql')])
+def test_graphql_base_urls_target_the_actual_router(url, expected):
+    assert graphql_endpoint(url) == expected
+    assert backend_urls({'GRAPHQL_URL':url})[BackendType.GRAPHQL] == expected
 
 @pytest.mark.parametrize('backend', BACKENDS)
 def test_bootstrap_requires_real_setup_and_login(monkeypatch, backend):
@@ -27,6 +39,7 @@ def test_bootstrap_requires_real_setup_and_login(monkeypatch, backend):
             return httpx.Response(200, json={'status':'ok'})
         payload = json.loads(request.content)
         if backend == BackendType.GRAPHQL:
+            assert request.url.path == '/graphql'
             return httpx.Response(200, json={'data': {'setup': True}} if 'setup(' in payload['query'] else {'data': {'login':'verified-token'}})
         if request.url.path.endswith('login'):
             assert ('tenant_id' if backend == BackendType.PHP_REST else 'tenantId') in payload
@@ -138,6 +151,19 @@ def test_seed_password_does_not_require_existing_tenant_id():
     from scripts.conformance_runtime import validate_credentials
     validate_credentials(True, {'CONFORMANCE_ADMIN_PASSWORD':'unit-test-password'})
 
+def test_conformance_stack_uses_same_isolated_urls_for_readiness_and_pytest(tmp_path, monkeypatch):
+    from scripts.conformance_runtime import ENV_URLS
+    monkeypatch.setenv('CONFORMANCE_ADMIN_PASSWORD','unit-test-password')
+    seen = []
+    monkeypatch.setattr(runner, 'wait_for_backends', lambda **kwargs: seen.append(kwargs['urls']))
+    def run(command, **kwargs):
+        assert {b:kwargs['env'][ENV_URLS[b][0]] for b in BACKENDS} == CONFORMANCE_URLS
+        (tmp_path/'conformance-report.json').write_text(json.dumps(report()))
+        return subprocess.CompletedProcess(command,0)
+    monkeypatch.setattr(runner.subprocess, 'run', run)
+    assert runner.main(['--seed','--suite','smoke','--stack','conformance','--report-dir',str(tmp_path)]) == 0
+    assert seen == [CONFORMANCE_URLS]
+
 @pytest.fixture
 def protocol_servers(monkeypatch):
     servers = []
@@ -161,6 +187,7 @@ def protocol_servers(monkeypatch):
             def do_POST(self):
                 data = json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))))
                 if self.protocol == BackendType.GRAPHQL:
+                    if self.path != '/graphql': return self.reply({'error':'Unknown endpoint'},404)
                     values, query = data['variables'], data['query']
                     if 'setup(' in query: return self.reply({'data':{'setup':True}})
                     if 'login(' in query:

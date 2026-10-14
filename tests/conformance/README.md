@@ -16,6 +16,9 @@ Set `GRAPHQL_URL`, `EXPRESS_REST_URL`, `PHP_REST_URL` and `PYTHON_REST_URL` for
 your disposable backend instances. Defaults are localhost ports 4000, 5000,
 8000 and 8001. `GRAPHQL_URL` must name the GraphQL endpoint; health probes use
 its origin's `/health`, rather than treating any successful root page as health.
+GraphQL base URLs without a path are normalized to `/graphql`; an explicitly
+configured endpoint path is preserved. A health response identifying another
+application is rejected, even if it says `healthy`.
 
 Set `CONFORMANCE_ADMIN_PASSWORD` to a test-only password of at least eight
 characters. The default test email is `admin@conformance.example`; override it
@@ -58,7 +61,11 @@ by default; `--report-dir` selects a different directory.
 The Compose stack creates a separate database for each backend, applies PHP
 initialization only to its database, initializes the two Prisma schemas and runs
 Python's explicit migration before starting its API. The Python image includes
-migration scripts. Development setup and public Python bootstrap are enabled
+migration scripts. PostgreSQL readiness checks its TCP listener, so API startup
+waits for initialization to finish. Express's runtime includes OpenSSL for Prisma
+and receives a test-only encryption key. PHP builds its code and Composer
+dependencies into the image; this stack does not mount host `vendor` files.
+Development setup and public Python bootstrap are enabled
 only in this test-stack configuration; event delivery is disabled for these
 HTTP conformance probes.
 
@@ -67,10 +74,26 @@ old shared-database configuration do not receive initialization automatically.
 Do not run test seeding or this configuration against a store database.
 
 ```powershell
-docker compose --project-name inventory-conformance-check -f docker-compose.conformance.yml up --build --abort-on-container-exit --exit-code-from conformance-runner
+docker compose --project-name inventory-conformance-check --env-file tests/conformance/compose.env -f docker-compose.conformance.yml up --build --abort-on-container-exit --exit-code-from conformance-runner
 ```
 
-This runs full conformance and currently exposes the unfinished scenarios.
+For a host smoke run, first build/start only the six test services, then use the
+conformance profile. It targets GraphQL 5040 (`/graphql`), Express 5050, PHP 5080
+and Python 5081, leaving development ports 4000/5000/8000/8001 alone:
+
+```powershell
+docker compose --project-name inventory-conformance-check --env-file tests/conformance/compose.env -f docker-compose.conformance.yml up -d --build postgres redis gql-backend express-backend php-backend python-backend
+$env:CONFORMANCE_ADMIN_PASSWORD = 'conformance-test-password'
+python scripts/run_conformance.py --seed --suite smoke --stack conformance
+```
+
+The explicit `compose.env` prevents the development `.env` from redirecting test
+port bindings onto existing services. `--stack conformance` also supplies the same
+test URLs to readiness polling and pytest. Backend endpoints are printed before
+execution. Older running Python images without `/api/auth/setup` must be rebuilt;
+a successful health probe alone cannot establish that their routes are current.
+
+The containerized runner runs full conformance and currently exposes the unfinished scenarios.
 CI uses a per-run project name, uploads the report even after failure, and cleans
 up only that project's disposable volumes. The runtime in this stack is not a
 restricted-role PostgreSQL RLS certification; backend-specific database contracts
@@ -88,8 +111,12 @@ test servers exercise the actual pytest fixtures and runner for all four transpo
 including GraphQL's independent authentication path and 160 placeholder failures.
 These servers are test doubles and do not certify the live applications' parity.
 
-The final harness verification passed all 37 self-tests on 2026-10-14.
+The final harness verification passed all 47 self-tests on 2026-10-14.
 Python compilation, YAML parsing and Compose configuration validation passed.
+Six live smoke tests passed against isolated Express and Python services. This
+used a cached Express runtime and current Python source, rather than fresh builds
+of all four backends. Docker Desktop's engine API then returned HTTP 500 during
+GraphQL/PHP validation, so the twelve-test live smoke run is not yet certified.
 A live four-backend inventory parity run has not been certified by these checks.
 
 ## Structure

@@ -11,14 +11,14 @@ import uuid
 from collections import Counter
 import httpx
 try:
-    from scripts.conformance_runtime import BACKENDS, backend_urls, check_health, validate_credentials, HarnessError
+    from scripts.conformance_runtime import BACKENDS, ENV_URLS, CONFORMANCE_URLS, backend_urls, check_health, validate_credentials, HarnessError
 except ModuleNotFoundError:
-    from conformance_runtime import BACKENDS, backend_urls, check_health, validate_credentials, HarnessError
+    from conformance_runtime import BACKENDS, ENV_URLS, CONFORMANCE_URLS, backend_urls, check_health, validate_credentials, HarnessError
 
 ROOT = Path(__file__).resolve().parents[1]
 
-def wait_for_backends(max_retries=30, initial_delay=2):
-    urls = backend_urls()
+def wait_for_backends(max_retries=30, initial_delay=2, urls=None):
+    urls = backend_urls() if urls is None else urls
     last = {}
     with httpx.Client(timeout=2, follow_redirects=False) as client:
         for attempt in range(max_retries):
@@ -86,6 +86,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--seed', action='store_true', help='Create unique test tenants and verify their login; disposable environments only')
     parser.add_argument('--suite', choices=['full', 'smoke'], default='full')
+    parser.add_argument('--stack', choices=['configured','conformance'], default='configured',
+        help='Use configured/default development URLs, or the dedicated conformance-stack host ports')
     parser.add_argument('--skip-health-check', action='store_true', help='Skip readiness polling; mandatory health tests still run')
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--report-dir', default='conformance-report')
@@ -96,11 +98,15 @@ def main(argv=None):
     report_file.unlink(missing_ok=True)  # Never accept a stale prior success.
     env = dict(os.environ, CONFORMANCE_RUN_ID=uuid.uuid4().hex, CONFORMANCE_SEED='1' if args.seed else '0')
     env['PYTHONPATH'] = str(ROOT)+os.pathsep+env.get('PYTHONPATH', '')
+    if args.stack == 'conformance':
+        env.update({ENV_URLS[b][0]: url for b, url in CONFORMANCE_URLS.items()})
     failure_code = 1
     try:
         validate_credentials(args.seed, env)
+        urls = backend_urls(env)
+        print('Backend endpoints: '+', '.join(f'{b.value}={url}' for b, url in urls.items()), flush=True)
         if not args.skip_health_check:
-            wait_for_backends()
+            wait_for_backends(urls=urls)
         target = 'tests/conformance/test_harness_smoke.py' if args.suite == 'smoke' else 'tests/conformance'
         command = [sys.executable, '-m', 'pytest', target, '--tb=short', '--json-report', '--json-report-omit=log',
             f'--json-report-file={report_file}', '-v' if args.verbose else '-q']

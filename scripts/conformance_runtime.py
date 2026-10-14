@@ -12,6 +12,9 @@ class BackendType(str, Enum):
     PYTHON_REST = 'python'
 
 BACKENDS = tuple(BackendType)
+CONFORMANCE_URLS = {BackendType.GRAPHQL: 'http://127.0.0.1:5040/graphql',
+    BackendType.EXPRESS_REST: 'http://127.0.0.1:5050', BackendType.PHP_REST: 'http://127.0.0.1:5080',
+    BackendType.PYTHON_REST: 'http://127.0.0.1:5081'}
 ENV_URLS = {BackendType.GRAPHQL: ('GRAPHQL_URL', 'http://localhost:4000'),
     BackendType.EXPRESS_REST: ('EXPRESS_REST_URL', 'http://localhost:5000'),
     BackendType.PHP_REST: ('PHP_REST_URL', 'http://localhost:8000'),
@@ -24,14 +27,18 @@ USERS_QUERY = 'query($tenantId:ID!){users(tenantId:$tenantId){id email}}'
 class HarnessError(RuntimeError):
     pass
 
-def backend_urls():
+def graphql_endpoint(url):
+    return url.rstrip('/') + '/graphql' if urlsplit(url).path in ('', '/') else url.rstrip('/')
+
+def backend_urls(environment=None):
+    env = os.environ if environment is None else environment
     result = {}
     for backend, (name, default) in ENV_URLS.items():
-        value = os.getenv(name, default).rstrip('/')
+        value = env.get(name, default).rstrip('/')
         parsed = urlsplit(value)
         if parsed.scheme not in ('http', 'https') or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise HarnessError(f'{name} requires an HTTP(S) URL without credentials/query/fragment')
-        result[backend] = value
+        result[backend] = graphql_endpoint(value) if backend == BackendType.GRAPHQL else value
     return result
 
 def origin(url):
@@ -55,6 +62,11 @@ def check_health(client, backend, url):
         value = json_response(response, backend, 'health')
         if value.get('status') not in ('ok', 'healthy'):
             raise HarnessError(f'{backend.value}: health status is not healthy')
+        service = value.get('service')
+        expected = {BackendType.GRAPHQL: 'gql-ddd-inventory', BackendType.EXPRESS_REST: 'js-ddd-inventory',
+            BackendType.PHP_REST: 'php-ddd-inventory', BackendType.PYTHON_REST: 'python-ddd-inventory'}
+        if service and service not in (expected[backend], backend.value):
+            raise HarnessError(f'{backend.value}: health belongs to a different service; check the configured backend URL')
     except httpx.RequestError as exc:
         raise HarnessError(f'{backend.value}: health connection failed ({type(exc).__name__})') from exc
     return value
@@ -76,6 +88,8 @@ def validate_credentials(seed=False, environment=None):
 
 def bootstrap(client, backend, url, run_id, seed=False):
     validate_credentials(seed)
+    if backend == BackendType.GRAPHQL:
+        url = graphql_endpoint(url)
     check_health(client, backend, url)
     tenant = f'conformance-{run_id}-{backend.value}' if seed else os.getenv('CONFORMANCE_TENANT_ID')
     email = os.getenv('CONFORMANCE_ADMIN_EMAIL', 'admin@conformance.example')
