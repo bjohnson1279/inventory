@@ -47,6 +47,13 @@ for the four workforce tables.
 
 ## Assessment
 
+The conformance harness has since been repaired to include all four backends,
+verify actual setup/authentication, propagate failures and require complete,
+attributed reports. Empty scenarios now fail explicitly; the forty original
+business scenarios still need implementations. Mandatory smoke probes establish
+health/identity wiring separately from full parity. See the updated
+[harness guide](../tests/conformance/README.md).
+
 The application has substantial inventory-domain breadth, especially in the TypeScript and PHP implementations. It is not yet supported by credible evidence of four-backend behavioral parity. Several features with immediate retail value—physical counts, aging, reliable notifications, and complete Python workflows—are unfinished at the API/persistence boundary. Stock transaction consistency and tenant isolation deserve attention before additional advanced automation.
 
 For a small retailer, reliable receiving, sales deductions, returns, counts, replenishment, and clear exceptions matter more than the current breadth of warehouse/AI panels. Treat the three mature implementations as candidates for a retail pilot after the critical work below; Python needs a larger implementation effort before it can offer the same product.

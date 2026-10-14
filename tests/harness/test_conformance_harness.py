@@ -49,6 +49,19 @@ def test_bad_authentication_cannot_fall_back(monkeypatch, bad):
         with pytest.raises(HarnessError):
             bootstrap(client, BackendType.PYTHON_REST, 'http://service', 'run')
 
+@pytest.mark.parametrize('backend,status,payload', [(BackendType.PYTHON_REST,500,{}),
+    (BackendType.PHP_REST,403,{}), (BackendType.GRAPHQL,200,{'data':{'setup':False}}),
+    (BackendType.GRAPHQL,200,{'errors':[{'message':'setup failed'}]})])
+def test_failed_setup_never_attempts_login(monkeypatch, backend, status, payload):
+    monkeypatch.setenv('CONFORMANCE_ADMIN_PASSWORD','unit-test-password')
+    requests = []
+    def handle(request):
+        requests.append(request)
+        return httpx.Response(200,json={'status':'ok'}) if request.method == 'GET' else httpx.Response(status,json=payload)
+    with httpx.Client(transport=httpx.MockTransport(handle)) as client:
+        with pytest.raises(HarnessError): bootstrap(client,backend,'http://service','test',True)
+    assert len(requests) == 2
+
 def report():
     scenarios = ['test_backend_health','test_authenticated_identity','test_unauthenticated_identity_is_rejected']
     return {'exitcode':0, 'tests':[{'nodeid': f'test_smoke.py::{s}[{b.value}]', 'outcome':'passed',
@@ -73,12 +86,22 @@ def test_report_validation_fails_closed(tmp_path, fault):
         elif fault == 'duplicate': value['tests'].append(value['tests'][0])
         elif fault == 'missing_scenario': value['tests'] = value['tests'][1:]
         path.write_text(json.dumps(value))
-    with pytest.raises(HarnessError): runner.parse_and_print_report(path)
+    with pytest.raises(HarnessError): runner.parse_and_print_report(path, suite='smoke')
 
 def test_report_accepts_complete_attributed_results(tmp_path):
     path = tmp_path/'report.json'
     path.write_text(json.dumps(report()))
-    assert set(runner.parse_and_print_report(path)) == {'gql','express','php','python'}
+    assert set(runner.parse_and_print_report(path, suite='smoke')) == {'gql','express','php','python'}
+
+def test_full_report_cannot_be_replaced_by_filtered_smoke_success(tmp_path):
+    path = tmp_path/'report.json'
+    path.write_text(json.dumps(report()))
+    with pytest.raises(HarnessError, match='complete full scenario manifest'):
+        runner.parse_and_print_report(path, suite='full')
+
+def test_full_manifest_accounts_for_every_declared_scenario():
+    assert len(runner.required_scenarios('full')) == 47
+    assert len(runner.required_scenarios('smoke')) == 3
 
 def test_runner_rejects_subprocess_failure_and_removes_stale_report(tmp_path, monkeypatch):
     path = tmp_path/'conformance-report.json'
@@ -88,7 +111,7 @@ def test_runner_rejects_subprocess_failure_and_removes_stale_report(tmp_path, mo
         assert kwargs['cwd'] == runner.ROOT and not path.exists()
         return subprocess.CompletedProcess(command, 3)
     monkeypatch.setattr(runner.subprocess, 'run', failed)
-    assert runner.main(['--skip-health-check','--report-dir',str(tmp_path)]) == 1
+    assert runner.main(['--skip-health-check','--report-dir',str(tmp_path)]) == 3
 
 @pytest.fixture
 def protocol_servers(monkeypatch):

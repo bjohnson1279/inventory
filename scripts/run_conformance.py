@@ -1,5 +1,6 @@
 """Fail-closed conformance runner: smoke proves wiring, full exposes coverage gaps."""
 import argparse
+import ast
 import json
 import os
 from pathlib import Path
@@ -33,7 +34,18 @@ def wait_for_backends(max_retries=30, initial_delay=2):
                 time.sleep(initial_delay)
     raise HarnessError('Required backend health checks failed: '+ '; '.join(last.values()))
 
-def parse_and_print_report(report_file):
+def required_scenarios(suite):
+    paths = [ROOT/'tests/conformance/test_harness_smoke.py'] if suite == 'smoke' else sorted((ROOT/'tests/conformance').glob('test_*.py'))
+    names = []
+    for path in paths:
+        for node in ast.parse(path.read_text(encoding='utf-8-sig')).body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith('test_'):
+                names.append(node.name)
+    if not names or len(names) != len(set(names)):
+        raise HarnessError('Scenario manifest is empty or contains ambiguous duplicate names')
+    return set(names)
+
+def parse_and_print_report(report_file, suite='full'):
     try:
         data = json.loads(Path(report_file).read_text(encoding='utf-8'))
     except (OSError, ValueError) as exc:
@@ -63,10 +75,9 @@ def parse_and_print_report(report_file):
         matrix[backend][scenario] = test.get('outcome')
         if test.get('outcome') != 'passed' or metadata.get('coverage_gap'):
             raise HarnessError(f'{backend}: {scenario} did not pass (skips/xfails/gaps are failures)')
-    expected = set(next(iter(matrix.values())))
-    mandatory = {'test_backend_health', 'test_authenticated_identity', 'test_unauthenticated_identity_is_rejected'}
-    if not mandatory <= expected or any(set(values) != expected for values in matrix.values()):
-        raise HarnessError('Report lacks mandatory smoke scenarios or equal coverage across all four backends')
+    expected = required_scenarios(suite)
+    if any(set(values) != expected for values in matrix.values()):
+        raise HarnessError(f'Report lacks the complete {suite} scenario manifest on all four backends; filters cannot hide coverage gaps')
     for backend, scenarios in matrix.items():
         print(f'{backend}: {len(scenarios)} passed')
     return matrix
@@ -85,6 +96,7 @@ def main(argv=None):
     report_file.unlink(missing_ok=True)  # Never accept a stale prior success.
     env = dict(os.environ, CONFORMANCE_RUN_ID=uuid.uuid4().hex, CONFORMANCE_SEED='1' if args.seed else '0')
     env['PYTHONPATH'] = str(ROOT)+os.pathsep+env.get('PYTHONPATH', '')
+    failure_code = 1
     try:
         if not args.skip_health_check:
             wait_for_backends()
@@ -92,15 +104,17 @@ def main(argv=None):
         command = [sys.executable, '-m', 'pytest', target, '--tb=short', '--json-report', '--json-report-omit=log',
             f'--json-report-file={report_file}', '-v' if args.verbose else '-q']
         result = subprocess.run(command, cwd=ROOT, env=env, check=False)
+        if result.returncode > 0:
+            failure_code = result.returncode
         if result.returncode != 0:
             print(f'Pytest exited {result.returncode}; report: {report_file}', file=sys.stderr)
-        parse_and_print_report(report_file)
+        parse_and_print_report(report_file, args.suite)
         if result.returncode != 0:
             raise HarnessError(f'Pytest failed with exit code {result.returncode}')
         return 0
     except (HarnessError, OSError) as exc:
         print(f'Conformance FAILED: {exc}', file=sys.stderr)
-        return 1
+        return failure_code
 
 if __name__ == '__main__':
     sys.exit(main())
