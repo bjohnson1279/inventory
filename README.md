@@ -2,6 +2,11 @@
 
 An enterprise-grade, multi-backend Domain-Driven Design (DDD) comparative architecture study. This repository orchestrates multiple independent backend implementations, a React single-page application client, an AI/ML FastAPI microservice sidecar, and a black-box cross-backend conformance test suite.
 
+The [canonical database contract](database/README.md) provides parent-owned,
+versioned PostgreSQL migrations and physical drift checks. It currently installs
+alongside legacy backend tables; backend migration and shared-storage parity are
+still in progress.
+
 ---
 
 ## 🏛️ Architecture Overview

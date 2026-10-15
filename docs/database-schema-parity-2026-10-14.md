@@ -7,6 +7,14 @@ The four backends do not currently implement one interchangeable physical schema
 Using the same PostgreSQL server/database in development has obscured differences
 in table names, row ownership, field names, representations and constraints.
 
+The parent now owns the first canonical contract and migration runner in
+`database/` and `scripts/canonical_schema.py`. Versions 0001–0002 create a separate
+`inventory` namespace with catalog/stock/journal/outbox foundations and physical
+drift checks. Existing backend tables and repositories have not been cut over;
+the divergences below still apply to their active storage. See
+`database/README.md` for the contract, deployment/recovery procedure and adoption
+sequence.
+
 | Area | Confirmed divergence | Consequence |
 | --- | --- | --- |
 | Journals | PHP uses `journal_entries.method` and JSONB `lines`; Express expects `accounting_method` plus normalized `journal_lines` with `journal_entry_id`, account metadata and `debit_or_credit`. Python uses `python_journals` and `python_journal_lines`. | Express ledger returned HTTP 500 against the existing PHP-initialized database. |
