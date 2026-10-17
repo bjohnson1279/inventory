@@ -1,0 +1,10 @@
+{
+  "source_id": "local-shared-postgres",
+  "source_schema": "public",
+  "target_schema": "inventory",
+  "currency": "USD",
+  "location_owners": {
+    "LOC-STOREFRONT": ["tenant-1"],
+    "LOC-BACKROOM": ["tenant-1"]
+  }
+}

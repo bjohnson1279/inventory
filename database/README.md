@@ -1,12 +1,12 @@
 # Canonical database contract
 
 The parent repository owns the canonical PostgreSQL DDL in `migrations/`.
-The latest contract is **0002**. The SQL files are the physical source of truth;
+The latest contract is **0003**. The SQL files are the physical source of truth;
 backend ORM models must eventually map to these tables and columns explicitly.
 
-This is the first foundation release. It creates the dedicated **`inventory`**
-schema alongside the existing `public` tables. It does **not** move existing
-records, switch backend repositories, or establish shared-storage parity yet.
+It creates the dedicated **`inventory`** schema alongside the existing `public`
+tables. The importer below copies supported existing data without switching
+backend repositories or establishing shared-storage parity yet.
 Legacy tables with the same names have incompatible meanings; automatic adoption
 or merging would risk associating stock and money with the wrong tenant.
 
@@ -18,7 +18,7 @@ or merging would risk associating stock and money with the wrong tenant.
 | Names | Snake_case, explicitly qualified by the `inventory` namespace in ORM mappings. No backend prefixes. |
 | IDs | `varchar(100)` consistently for identifiers and references; accepts existing string IDs and UUID strings. No implicit UUID casting. IDs are supplied by the caller. |
 | Ownership | Tenant ID is part of every owned primary/foreign key. Reused IDs, emails, SKUs and barcodes across tenants are valid. Cross-tenant references are invalid. |
-| Authorization | All domain tables have forced RLS. Set `inventory.tenant_id` locally in every request/worker transaction. Missing/empty context sees no rows. Runtime roles must have neither superuser nor BYPASSRLS privileges. Tenant authentication must precede setting context. |
+| Authorization | All domain tables have forced RLS. Set `inventory.tenant_id` locally in every request/worker transaction. Missing/empty context sees no rows. Runtime roles must have neither superuser nor BYPASSRLS privileges. Tenant authentication must precede setting context. Version 0003 adds tenant-owned roles, permissions and memberships to preserve full RBAC. `users.role` is a compatibility projection; MULTIPLE/NONE never substitute for checking memberships. |
 | Catalog | `products` are parents; `variants` are sellable SKUs, including a product with one SKU. Price/currency belong to the variant. Barcodes identify variants. |
 | Quantity | `numeric(20,6)` in base units. Nonnegative balances; allocation cannot exceed on-hand stock. Version enables repository compare-and-swap. Mutation IDs are tenant-unique. Updating balances and inserting movements must share a transaction. |
 | Money | Integer minor units (`*_cents`), bounded to JavaScript's exact integer range. One three-letter uppercase currency per journal; zero-decimal/multi-decimal currency conversion remains a future contract extension. |
@@ -72,7 +72,7 @@ in an environment must target the same agreed namespace.
 
 ## Migration authoring and recovery
 
-1. Never edit an applied migration. Add the next contiguous `0003_name.sql` file.
+1. Never edit an applied migration. Add the next contiguous `0004_name.sql` file.
    Keep identifiers unqualified so the runner can install/check isolated schemas.
    Do not reference or mutate `public`/legacy tables in foundation DDL.
 2. Keep changes transactional: no `CONCURRENTLY`, explicit transaction control,
@@ -102,6 +102,66 @@ existing ORM at `inventory` merely by changing its search path. Existing startup
 DDL/`prisma db push` must not own canonical tables. Existing conformance tests
 against separate backend databases remain a separate behavioral check.
 
+## Import existing shared data
+
+`scripts/import_canonical_data.py` currently imports the **shared PHP/TS layout**
+in the same PostgreSQL database: tenants, roles, permission definitions and
+assignments, users/memberships, locations, products/variants, barcodes and stock
+balances. It supports the inspected local layout, including string/UUID IDs,
+PHP permission strings and TS permission IDs. It is not an importer for Python's
+separate catalog, accounting history, or asynchronous delivery history yet.
+Any populated unsupported table blocks the **entire** import. Empty tables are
+counted and reported, not fabricated as imported data.
+
+The local ownership manifest is `database/imports/local-shared.json`. It assigns
+the two existing global location records to the only persisted business tenant,
+`tenant-1`. The routing registry's seeded `system`/`test-tenant` entries are
+connection metadata, not authoritative tenant records; credentials are neither
+imported nor included in reports. Legacy migration histories are excluded too.
+The currency in the manifest is an explicit fallback for legacy prices; there
+are no product/price rows in the inspected local store.
+
+Before applying to any other environment, review its tenant and location
+ownership and supply its own manifest. Do not reuse local mappings blindly.
+Global roles and permissions are copied into each actual tenant. Password hashes
+are preserved byte-for-byte; normalized email collisions abort. Inactive users
+and multiple/no roles retain those semantics. Source metadata retains unmapped
+business fields (including the original email); hashes are stored only in the
+canonical credential column. IDs are preserved and `import_rows` stores the
+source/target crosswalk and checksums under tenant RLS.
+
+No target rows are overwritten. A price must be supplied by source data; missing
+prices, fractional cents, ambiguous SKUs, conflicting stock snapshots and nonzero
+PHP open-box/damaged quantities block import pending a reviewed conversion.
+Quantities are never summed across backends. A dry run stages records in a
+savepoint to validate actual constraints and then rolls them back.
+
+```powershell
+# Take a private PostgreSQL backup first, then upgrade the canonical contract.
+python scripts/canonical_schema.py apply
+python scripts/import_canonical_data.py plan --manifest database/imports/local-shared.json --report .pytest_cache/canonical-import-plan.json
+$canonicalPlan = Get-Content .pytest_cache/canonical-import-plan.json -Raw | ConvertFrom-Json
+python scripts/import_canonical_data.py apply --manifest database/imports/local-shared.json --expect-plan $canonicalPlan.plan_digest --report .pytest_cache/canonical-import-result.json
+python scripts/canonical_schema.py check
+```
+
+Run imports with a dedicated migration administrator with BYPASSRLS/superuser;
+otherwise RLS could conceal source/target records. Reports contain counts, issue
+categories and digests, not users, passwords or credential hashes. Apply takes
+source SHARE locks and target SHARE ROW EXCLUSIVE locks, subject to the runner's
+five-second lock timeout, and commits the complete copy atomically. Pause source
+writes during import to avoid lock contention. Apply rechecks the reviewed plan
+digest under locks; any intervening source, target or manifest change aborts.
+
+Post-import reconciliation compares every mapped field and fingerprints complete
+target rows. Repeated plan/apply is insert-only and idempotent while records stay
+unchanged. Changing either imported source rows or canonical rows blocks another
+import rather than overwriting newer data. A successful report is written after
+commit; if report writing fails, consult database `import_rows` receipts and run
+a new plan. The copy is a snapshot, **not live synchronization**. Reconcile again
+and implement a controlled final delta before repository cutover if legacy
+writes resume. Do not enable both sets of repositories as independent writers.
+
 ## Verification
 
 Tests use unique schemas and transaction rollback, including test roles; no
@@ -110,7 +170,7 @@ because the RLS test creates a temporary role and transfers table ownership.
 
 ```powershell
 $env:CANONICAL_SCHEMA_TEST_DATABASE_URL = 'postgresql://USER:PASSWORD@localhost:5432/TEST_DATABASE'
-python -m pytest tests/harness/test_canonical_schema.py -q
+python -m pytest tests/harness/test_canonical_schema.py tests/harness/test_canonical_import.py -q
 ```
 
 Without that variable PostgreSQL tests explicitly skip. The dedicated

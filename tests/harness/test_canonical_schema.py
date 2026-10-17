@@ -30,17 +30,17 @@ def install(store):
     conn.execute("INSERT INTO tenants(id,name) VALUES ('tenant-a','Shop A'),('tenant-b','Shop B')")
     conn.execute("INSERT INTO products(tenant_id,id,name) VALUES ('tenant-a','parent','Shirt'),('tenant-b','parent','Shirt B')")
     conn.execute("INSERT INTO variants(tenant_id,id,product_id,sku,name,currency) VALUES ('tenant-a','variant','parent','SKU','Small','USD'),('tenant-b','variant','parent','SKU','Small B','USD')")
-    conn.execute("INSERT INTO locations VALUES ('tenant-a','shop','Front'),('tenant-b','other-shop','Front B')")
+    conn.execute("INSERT INTO locations(tenant_id,id,name) VALUES ('tenant-a','shop','Front'),('tenant-b','other-shop','Front B')")
     return conn, schema
 
 
 def test_clean_install_repeat_and_physical_check(store):
     conn, schema = install(store)
-    assert run(conn, 'apply', schema)['applied'] == ['0001', '0002']
+    assert run(conn, 'apply', schema)['applied'] == ['0001', '0002', '0003']
     assert run(conn, 'check', schema)['pending'] == []
     select_schema(conn, schema)
     assert conn.execute('SELECT count(*) FROM products').fetchone()[0] == 2
-    assert conn.execute('SELECT count(*) FROM schema_migrations').fetchone()[0] == 2
+    assert conn.execute('SELECT count(*) FROM schema_migrations').fetchone()[0] == 3
 
 
 def test_upgrade_preserves_rows(store, tmp_path):
@@ -49,8 +49,8 @@ def test_upgrade_preserves_rows(store, tmp_path):
     (tmp_path / first.name).write_bytes(first.read_bytes())
     run(conn, 'apply', schema, tmp_path)
     select_schema(conn, schema)
-    conn.execute("INSERT INTO tenants VALUES ('legacy-tenant','Existing',now())")
-    assert run(conn, 'status', schema)['pending'] == ['0002']
+    conn.execute("INSERT INTO tenants(id,name,created_at) VALUES ('legacy-tenant','Existing',now())")
+    assert run(conn, 'status', schema)['pending'] == ['0002', '0003']
     run(conn, 'apply', schema)
     select_schema(conn, schema)
     assert conn.execute('SELECT name FROM tenants').fetchone()[0] == 'Existing'
@@ -135,9 +135,9 @@ def test_competing_runner_fails_without_waiting(store):
 
 
 @pytest.mark.parametrize('statement', [
-    "INSERT INTO stock VALUES ('tenant-a','variant','other-shop',1,0,0,0)",
-    "INSERT INTO stock VALUES ('tenant-a','variant','shop',1,2,0,0)",
-    "INSERT INTO stock VALUES ('tenant-a','variant','shop',-1,0,0,0)",
+    "INSERT INTO stock(tenant_id,variant_id,location_id,quantity,allocated,in_transit,version) VALUES ('tenant-a','variant','other-shop',1,0,0,0)",
+    "INSERT INTO stock(tenant_id,variant_id,location_id,quantity,allocated,in_transit,version) VALUES ('tenant-a','variant','shop',1,2,0,0)",
+    "INSERT INTO stock(tenant_id,variant_id,location_id,quantity,allocated,in_transit,version) VALUES ('tenant-a','variant','shop',-1,0,0,0)",
     "INSERT INTO variants(tenant_id,id,product_id,sku,name,currency) VALUES ('tenant-a','duplicate','parent','SKU','Duplicate','USD')",
     "INSERT INTO variants(tenant_id,id,product_id,sku,name,currency,price_cents) VALUES ('tenant-a','bad','parent','BAD','Bad','USD',9007199254740992)",
 ])
@@ -198,17 +198,17 @@ def test_failed_upgrade_preserves_existing_rows_and_history(store, tmp_path):
     conn, schema = install(store)
     for path in MIGRATIONS.glob('*.sql'):
         (tmp_path / path.name).write_bytes(path.read_bytes())
-    (tmp_path / '0003_broken.sql').write_text('ALTER TABLE products ADD COLUMN bad integer; SELECT 1/0;')
+    (tmp_path / '0004_broken.sql').write_text('ALTER TABLE products ADD COLUMN bad integer; SELECT 1/0;')
     with pytest.raises(psycopg.errors.DivisionByZero), conn.transaction():
         run(conn, 'apply', schema, tmp_path)
-    assert run(conn, 'check', schema)['applied'] == ['0001', '0002']
+    assert run(conn, 'check', schema)['applied'] == ['0001', '0002', '0003']
     select_schema(conn, schema)
     assert conn.execute('SELECT count(*) FROM products').fetchone()[0] == 2
 
 
 def test_stock_fractional_units_and_movement_idempotency(store):
     conn, _ = install(store)
-    conn.execute("INSERT INTO stock VALUES ('tenant-a','variant','shop',1.25,0.25,0,0)")
+    conn.execute("INSERT INTO stock(tenant_id,variant_id,location_id,quantity,allocated,in_transit,version) VALUES ('tenant-a','variant','shop',1.25,0.25,0,0)")
     conn.execute("INSERT INTO stock_movements(tenant_id,id,mutation_id,variant_id,location_id,quantity_delta,reason) VALUES ('tenant-a','m1','request-1','variant','shop',1.25,'Receipt')")
     with pytest.raises(psycopg.errors.UniqueViolation), conn.transaction():
         conn.execute("INSERT INTO stock_movements(tenant_id,id,mutation_id,variant_id,location_id,quantity_delta,reason) VALUES ('tenant-a','m2','request-1','variant','shop',1.25,'Receipt retry')")
