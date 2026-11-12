@@ -214,7 +214,7 @@ async def test_graphql_adapter_matches_checked_in_schema(contract, operation):
         assert not errors, '\n'.join(e.message for e in errors)
         # Validate variables too; enum/input validation isn't covered by validate().
         from graphql.execution.values import get_variable_values
-        variables = get_variable_values(schema, parsed.definitions[0].variable_definitions, document['variables'])
+        variables = get_variable_values(schema, parsed.definitions[0].variable_definitions or (), document.get('variables') or {})
         assert not isinstance(variables, list), str(variables)
         field = parsed.definitions[0].selection_set.selections[0].name.value
         requests.append(field)
