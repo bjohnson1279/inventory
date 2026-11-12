@@ -200,7 +200,7 @@ async def test_graphql_adapter_matches_checked_in_schema(contract, operation):
                     assert print_ast(fields[field.name.value].type) == print_ast(field.type)
                 fields[field.name.value] = field
             merged = copy(previous)
-            merged.fields = tuple(fields.values())
+            object.__setattr__(merged, 'fields', tuple(fields.values()))
             definitions[named[identity]] = merged
         else:
             named[identity] = len(definitions)
