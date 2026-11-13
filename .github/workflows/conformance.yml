@@ -1,10 +1,14 @@
 name: Conformance Suite
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,31 +32,32 @@ jobs:
             exit 1
           fi
           echo "No conflict markers detected."
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          
+          node-version: '22'
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
-          
+          php-version: '8.2'
+          extensions: mbstring, xml, pdo_pgsql, pdo_sqlite, sqlite3, curl
+
       - name: Install dependencies
         run: pip install PyYAML
-        
+
       - name: Generate OpenAPI specs
         run: python scripts/generate_openapi.py
-        
+
       - name: Check for schema drift (uncommitted changes)
         run: git diff --ignore-submodules=dirty --exit-code
-        
+
       - name: Lint schema drift
         run: python scripts/lint_schema_drift.py
 
@@ -68,21 +73,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      
+
       - name: Setup Node.js (for TS)
         if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: ${{ matrix.backend }}/package-lock.json
-          
+
       - name: Setup PHP (for PHP)
         if: matrix.backend == 'php-ddd-inventory'
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
-          
+          php-version: '8.2'
+          extensions: mbstring, xml, pdo_pgsql, pdo_sqlite, sqlite3, curl
+
       - name: Check TypeScript Syntax
         if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         working-directory: ${{ matrix.backend }}
@@ -93,7 +99,7 @@ jobs:
           npm ci
           npx prisma generate
           npx tsc --noEmit
-          
+
       - name: Check PHP Syntax
         if: matrix.backend == 'php-ddd-inventory'
         working-directory: ${{ matrix.backend }}
@@ -104,7 +110,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: Check Python Syntax
         if: matrix.backend == 'python-ddd-inventory'
         working-directory: ${{ matrix.backend }}
@@ -138,21 +144,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      
+
       - name: Setup Node.js
         if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: ${{ matrix.backend }}/package-lock.json
-          
+
       - name: Setup PHP
         if: matrix.backend == 'php-ddd-inventory'
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
-          
+          php-version: '8.2'
+          extensions: mbstring, xml, pdo_pgsql, pdo_sqlite, sqlite3, curl
+
       - name: Get Composer Cache Directory
         if: matrix.backend == 'php-ddd-inventory'
         id: composer-cache
@@ -165,7 +172,7 @@ jobs:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('php-ddd-inventory/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
-          
+
       - name: Run TypeScript Tests
         if: matrix.backend != 'php-ddd-inventory' && matrix.backend != 'python-ddd-inventory'
         working-directory: ${{ matrix.backend }}
@@ -181,7 +188,7 @@ jobs:
           npx prisma generate
           npx prisma db push --accept-data-loss
           npm test
-          
+
       - name: Run PHP Tests
         if: matrix.backend == 'php-ddd-inventory'
         working-directory: ${{ matrix.backend }}
@@ -195,7 +202,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: Run Python Tests
         if: matrix.backend == 'python-ddd-inventory'
         working-directory: ${{ matrix.backend }}
@@ -218,30 +225,67 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install -r tests/conformance/requirements.txt
-      - run: python -m pytest tests/harness -q --tb=short
+      - run: python -m pytest tests/harness --ignore=tests/harness/test_canonical_schema.py --ignore=tests/harness/test_canonical_import.py -q --tb=short
+
+  database-contracts:
+    name: Database contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: schema_test
+          POSTGRES_PASSWORD: schema_test
+          POSTGRES_DB: schema_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U schema_test -d schema_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      CANONICAL_SCHEMA_TEST_DATABASE_URL: postgresql://schema_test:schema_test@127.0.0.1:5432/schema_test
+      CONFORMANCE_LEDGER_DATABASE_URL: postgresql://schema_test:schema_test@127.0.0.1:5432/schema_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r database/requirements.txt pytest pytest-asyncio
+      - name: Verify canonical schema, import, and cross-backend ledger compatibility
+        run: python -m pytest tests/harness/test_canonical_schema.py tests/harness/test_canonical_import.py tests/database/test_shared_ledger_compat.py -q --tb=short --junitxml=database-results.xml
+      - name: Upload database contract results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-contract-results
+          path: database-results.xml
+          if-no-files-found: error
 
   conformance-tests:
     name: Conformance Tests
-    needs: [lint-schemas, syntax-check, unit-tests, harness-tests]
+    needs: [lint-schemas, syntax-check, unit-tests, harness-tests, database-contracts]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      
+
       - name: Run Docker Compose
         run: |
-          docker compose --project-name inventory-conformance-${{ github.run_id }} -f docker-compose.conformance.yml up --build --abort-on-container-exit --exit-code-from conformance-runner
-          
+          docker compose --project-name inventory-conformance-${{ github.run_id }} --env-file tests/conformance/compose.env -f docker-compose.conformance.yml up --build --abort-on-container-exit --exit-code-from conformance-runner
+
       - name: Upload Conformance Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: conformance-report
           path: conformance-report/conformance-report.json
+          if-no-files-found: error
           retention-days: 14
 
       - name: Clean up disposable conformance stack
         if: always()
-        run: docker compose --project-name inventory-conformance-${{ github.run_id }} -f docker-compose.conformance.yml down --volumes
+        run: docker compose --project-name inventory-conformance-${{ github.run_id }} --env-file tests/conformance/compose.env -f docker-compose.conformance.yml down --volumes
