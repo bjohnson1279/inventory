@@ -5,32 +5,49 @@ on:
   repository_dispatch:
     types: [submodule-update]
   schedule:
-    # Run every 6 hours to catch drifted submodule commits
     - cron: '0 */6 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: submodule-pointer-sync
+  cancel-in-progress: false
 
 jobs:
   sync-submodules:
-    name: Sync Submodule Pointers to Latest Remote Heads
+    name: Propose verified submodule pointer updates
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout Monorepo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update Submodules to Latest Remote Commits
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git submodule update --remote --merge
-
-          if ! git diff --quiet; then
-            echo "Submodule drift detected, committing updates..."
-            git add .
-            git commit -m "chore(submodules): auto-sync submodules to latest remote default branches"
-            git push origin main
-          else
-            echo "All submodules are already synchronized with remote heads."
-          fi
+      - name: Resolve remote default branches
+        run: git submodule update --init --remote
+      - name: Open a pull request instead of pushing to the protected branch
+        id: proposal
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: codex/sync-submodule-pointers
+          base: main
+          title: 'chore(submodules): propose remote default-branch pointers'
+          commit-message: 'chore(submodules): propose remote default-branch pointers'
+          body: 'Updates submodule pointers to their remote default branches. Required inventory checks must pass before merging.'
+          add-paths: |
+            gql-ddd-inventory
+            js-ddd-inventory
+            php-ddd-inventory
+            python-ddd-inventory
+            react-ddd-inventory-client
+            inventory-python-sidecar
+      - name: Start required checks for the bot-created pull request
+        if: steps.proposal.outputs.pull-request-operation == 'created' || steps.proposal.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        # GITHUB_TOKEN-created PRs do not trigger pull_request workflows.
+        run: gh workflow run conformance.yml --ref codex/sync-submodule-pointers
